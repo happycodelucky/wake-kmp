@@ -11,13 +11,19 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 
 /**
- * White-box test of [DefaultWake]'s orchestration. Uses an in-test recording
+ * White-box test of [performWake]'s orchestration. Uses an in-test recording
  * [UdpBroadcaster] (visible because it is `internal` to `:wake` and this is the
  * `:wake` test source set) to assert the parse → build → broadcast → map chain
- * without opening a real socket. The consumer-facing black-box fake is
- * `FakeWake` in `:wake-testing`.
+ * without opening a real socket.
+ *
+ * This is the library's own coverage of the send seam. The public
+ * [com.happycodelucky.wake.Wake.up] entry point simply calls [performWake] with
+ * the platform broadcaster, so once this passes and `defaultBroadcaster()`
+ * returns the right platform send, the static call is covered too. The
+ * consumer-facing black-box fake is `FakeWake` in `:wake-testing`, which records
+ * against the public [com.happycodelucky.wake.WakeSender] seam.
  */
-class DefaultWakeTest {
+class PerformWakeTest {
     /** Records the last send and returns a programmable outcome. */
     private class RecordingBroadcaster(
         private val outcome: WakeSendOutcome = WakeSendOutcome.Sent,
@@ -44,13 +50,18 @@ class DefaultWakeTest {
     fun valid_mac_builds_packet_and_returns_Success() =
         runTest {
             val broadcaster = RecordingBroadcaster()
-            val wake = DefaultWake(broadcaster)
 
-            val result = wake.wake("AA:BB:CC:DD:EE:FF")
+            val result =
+                performWake(
+                    broadcaster = broadcaster,
+                    mac = "AA:BB:CC:DD:EE:FF",
+                    broadcastAddress = DEFAULT_BROADCAST_ADDRESS,
+                    port = DEFAULT_WAKE_PORT,
+                )
 
             assertIs<WakeResult.Success>(result)
             assertEquals(1, broadcaster.sendCount)
-            assertEquals(102, broadcaster.sentPacket?.size)
+            assertEquals(MAGIC_PACKET_LENGTH, broadcaster.sentPacket?.size)
             // The packet is the real magic packet for the parsed MAC.
             val expectedPacket =
                 buildMagicPacket(
@@ -67,11 +78,16 @@ class DefaultWakeTest {
         }
 
     @Test
-    fun defaults_pass_through_to_the_broadcaster() =
+    fun library_defaults_pass_through_to_the_broadcaster() =
         runTest {
             val broadcaster = RecordingBroadcaster()
 
-            DefaultWake(broadcaster).wake("AABBCCDDEEFF")
+            performWake(
+                broadcaster = broadcaster,
+                mac = "AABBCCDDEEFF",
+                broadcastAddress = DEFAULT_BROADCAST_ADDRESS,
+                port = DEFAULT_WAKE_PORT,
+            )
 
             assertEquals(DEFAULT_BROADCAST_ADDRESS, broadcaster.sentAddress)
             assertEquals(DEFAULT_WAKE_PORT, broadcaster.sentPort)
@@ -82,7 +98,12 @@ class DefaultWakeTest {
         runTest {
             val broadcaster = RecordingBroadcaster()
 
-            DefaultWake(broadcaster).wake("AABBCCDDEEFF", broadcastAddress = "192.168.1.255", port = 7)
+            performWake(
+                broadcaster = broadcaster,
+                mac = "AABBCCDDEEFF",
+                broadcastAddress = "192.168.1.255",
+                port = 7,
+            )
 
             assertEquals("192.168.1.255", broadcaster.sentAddress)
             assertEquals(7, broadcaster.sentPort)
@@ -93,7 +114,13 @@ class DefaultWakeTest {
         runTest {
             val broadcaster = RecordingBroadcaster()
 
-            val result = DefaultWake(broadcaster).wake("not-a-mac")
+            val result =
+                performWake(
+                    broadcaster = broadcaster,
+                    mac = "not-a-mac",
+                    broadcastAddress = DEFAULT_BROADCAST_ADDRESS,
+                    port = DEFAULT_WAKE_PORT,
+                )
 
             assertIs<WakeResult.InvalidMacAddress>(result)
             assertEquals(0, broadcaster.sendCount)
@@ -105,7 +132,13 @@ class DefaultWakeTest {
         runTest {
             val broadcaster = RecordingBroadcaster(WakeSendOutcome.Failed("sendto errno=49"))
 
-            val result = DefaultWake(broadcaster).wake("AA:BB:CC:DD:EE:FF")
+            val result =
+                performWake(
+                    broadcaster = broadcaster,
+                    mac = "AA:BB:CC:DD:EE:FF",
+                    broadcastAddress = DEFAULT_BROADCAST_ADDRESS,
+                    port = DEFAULT_WAKE_PORT,
+                )
 
             val error = assertIs<WakeResult.NetworkError>(result)
             assertEquals("sendto errno=49", error.message)

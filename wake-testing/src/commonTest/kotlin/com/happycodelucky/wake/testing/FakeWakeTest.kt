@@ -3,6 +3,7 @@ package com.happycodelucky.wake.testing
 import com.happycodelucky.wake.DEFAULT_BROADCAST_ADDRESS
 import com.happycodelucky.wake.DEFAULT_WAKE_PORT
 import com.happycodelucky.wake.WakeResult
+import com.happycodelucky.wake.WakeSender
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -17,7 +18,7 @@ class FakeWakeTest {
         runTest {
             val fake = FakeWake()
 
-            val result = fake.wake("AA:BB:CC:DD:EE:FF")
+            val result = fake.up("AA:BB:CC:DD:EE:FF")
 
             assertIs<WakeResult.Success>(result)
             assertTrue(fake.wasCalled)
@@ -32,7 +33,7 @@ class FakeWakeTest {
         runTest {
             val fake = FakeWake(result = WakeResult.NetworkError("no route to host"))
 
-            val result = fake.wake("AABBCCDDEEFF")
+            val result = fake.up("AABBCCDDEEFF")
 
             val error = assertIs<WakeResult.NetworkError>(result)
             assertEquals("no route to host", error.message)
@@ -43,8 +44,8 @@ class FakeWakeTest {
         runTest {
             val fake = FakeWake()
 
-            fake.wake("AA:BB:CC:DD:EE:01", broadcastAddress = "192.168.1.255", port = 7)
-            fake.wake("AA:BB:CC:DD:EE:02")
+            fake.up("AA:BB:CC:DD:EE:01", broadcastAddress = "192.168.1.255", port = 7)
+            fake.up("AA:BB:CC:DD:EE:02")
 
             assertEquals(2, fake.callCount)
             assertEquals(
@@ -69,12 +70,24 @@ class FakeWakeTest {
     fun reset_clears_recorded_calls() =
         runTest {
             val fake = FakeWake()
-            fake.wake("AABBCCDDEEFF")
+            fake.up("AABBCCDDEEFF")
 
             fake.reset()
 
             assertFalse(fake.wasCalled)
             assertEquals(0, fake.callCount)
             assertNull(fake.lastCall)
+        }
+
+    @Test
+    fun is_injectable_as_a_WakeSender() =
+        runTest {
+            // The point of the new shape: a feature depends on WakeSender and
+            // the fake satisfies it, so it can be injected by constructor.
+            val sender: WakeSender = FakeWake()
+
+            val result = sender.up("AA:BB:CC:DD:EE:FF")
+
+            assertIs<WakeResult.Success>(result)
         }
 }

@@ -60,14 +60,19 @@ class JvmUdpBroadcasterTest {
         }
 
     @Test
-    fun full_wake_through_DefaultWake_succeeds_over_loopback() =
+    fun full_wake_through_performWake_succeeds_over_loopback() =
         runTest {
             DatagramSocket(0, InetAddress.getByName("127.0.0.1")).use { receiver ->
                 receiver.soTimeout = 2_000
                 val port = receiver.localPort
 
-                val wake = DefaultWake(JvmUdpBroadcaster())
-                val result = wake.wake("AABBCCDDEEFF", broadcastAddress = "127.0.0.1", port = port)
+                val result =
+                    performWake(
+                        broadcaster = JvmUdpBroadcaster(),
+                        mac = "AABBCCDDEEFF",
+                        broadcastAddress = "127.0.0.1",
+                        port = port,
+                    )
 
                 assertIs<WakeResult.Success>(result)
 

@@ -4,10 +4,10 @@
  * `UdpBroadcaster` is the single point of platform divergence: it sends an
  * already-built packet as a UDP broadcast datagram. Implemented over POSIX
  * sockets on Apple (`PosixUdpBroadcaster`) and `java.net.DatagramSocket` on
- * Android (`JvmUdpBroadcaster`). Keeping this an interface (CLAUDE.md §8,
- * favouring interface + factory over top-level `expect`/`actual`) lets
- * commonTest substitute a recording fake and unit-test `DefaultWake`'s
- * orchestration with no real sockets.
+ * Android (`JvmUdpBroadcaster`). Keeping this an internal interface lets
+ * commonTest substitute a recording fake and unit-test `performWake`'s
+ * orchestration with no real sockets; only the platform *selection*
+ * (`defaultBroadcaster()`) crosses the `expect`/`actual` boundary.
  */
 package com.happycodelucky.wake.internal
 
@@ -32,9 +32,8 @@ internal interface UdpBroadcaster {
 }
 
 /**
- * The narrow internal outcome of a [UdpBroadcaster.send].
- * [com.happycodelucky.wake.internal.DefaultWake] maps this onto the public
- * [com.happycodelucky.wake.WakeResult].
+ * The narrow internal outcome of a [UdpBroadcaster.send]. [performWake] maps
+ * this onto the public [com.happycodelucky.wake.WakeResult].
  */
 internal sealed interface WakeSendOutcome {
     /** The datagram was handed to the OS. */

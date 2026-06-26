@@ -2,8 +2,9 @@
  * Wake — :wake-testing module.
  *
  * Public, scriptable test fake for consumers of `:wake`: `FakeWake`, a
- * recording implementation of the `Wake` interface that captures every wake
- * call without opening a real socket and returns a programmable `WakeResult`.
+ * recording implementation of the `WakeSender` seam (from `:wake`) that
+ * captures every `up` call without opening a real socket and returns a
+ * programmable `WakeResult`.
  * Same module shape as `:wake` via the `wake.kmp-library` convention plugin;
  * published in lockstep (same group / version / pipeline) via `wake.publish`.
  * Consumers wire it on `testImplementation` (or KMP `commonTest` deps); the
@@ -53,8 +54,8 @@ mavenPublishing {
         name.set("Wake Testing")
         description.set(
             "Test fakes for the Wake KMP library: FakeWake, a recording " +
-                "implementation of the Wake interface that captures wake " +
-                "calls without sending a real packet.",
+                "WakeSender that captures up() calls without sending a real " +
+                "packet.",
         )
     }
 }

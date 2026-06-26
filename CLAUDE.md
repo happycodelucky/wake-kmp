@@ -17,11 +17,14 @@ public `Wake` API, the platform UDP send. Anything that isn't actually UI.
 iOS, Jetpack Compose on Android, SwiftUI/AppKit on macOS desktop). **Do not add
 Compose Multiplatform.** Do not propose it. The shared module is headless.
 
-**Wake is stateless and one-shot.** Each `Wake.wake(...)` opens a socket, sends,
-and closes — there is no long-lived observer. So there is **no `.shared`
-singleton, no `AutoCloseable`, no `androidx.startup` attach, and no global
-test-override stack.** Tests inject a `FakeWake` (in `:wake-testing`) by
-constructor.
+**Wake is stateless and one-shot.** Each `Wake.up(...)` opens a socket, sends,
+and closes — there is no long-lived observer. The public entry point is a Kotlin
+`object Wake` with a static `suspend fun up(...)`; it holds no mutable state.
+There is **no `AutoCloseable`, no `androidx.startup` attach, and no global
+test-override stack.** Because `Wake` is an `object` (not an instance) there is
+no constructor to inject, so consumers who want a test seam depend on the small
+`WakeSender` interface (production = `Wake.asSender()`, tests = `FakeWake` from
+`:wake-testing`); callers who don't need a seam just call `Wake.up(...)`.
 
 **Targets — ARM only, no exceptions:**
 
@@ -108,20 +111,23 @@ Allowed exceptions:
 
 ```
 /wake                 headless KMP library — magic packet + UDP send
-  /src/commonMain      Wake API, packet/MAC/IPv4 logic, the UdpBroadcaster seam
-  /src/appleMain       PosixUdpBroadcaster (POSIX cinterop) + Wake() factory
-  /src/androidMain     JvmUdpBroadcaster (java.net) + Wake() factory + manifest
-  /src/commonTest      pure-logic + orchestration tests
+  /src/commonMain      object Wake + WakeSender, packet/MAC/IPv4 logic, the UdpBroadcaster seam
+  /src/appleMain       PosixUdpBroadcaster (POSIX cinterop) + defaultBroadcaster() actual
+                       + swift/Wake+Up.swift (the Wake.up(mac:) sweetener)
+  /src/androidMain     JvmUdpBroadcaster (java.net) + defaultBroadcaster() actual + manifest
+  /src/commonTest      pure-logic + performWake orchestration tests
   /src/androidHostTest live loopback-socket test of the java.net send
-/wake-testing         public FakeWake recorder for consumers' tests
+/wake-testing         public FakeWake recorder (implements WakeSender) for consumers' tests
 /apps/*               native sample apps (deferred)
 ```
 
 `applyDefaultHierarchyTemplate()`. Don't hand-roll source set wiring.
 
-`expect`/`actual` surface stays minimal. The platform UDP send is an internal
-`interface UdpBroadcaster` with per-platform implementations selected by the
-platform `Wake()` factory — not a top-level `expect class` (CLAUDE.md §8).
+`expect`/`actual` surface stays minimal — a single one-line
+`internal expect fun defaultBroadcaster(): UdpBroadcaster` selects the platform
+send (a tiny `expect fun` is fine; the rule bans a large `expect class`). The
+platform UDP send itself is an internal `interface UdpBroadcaster` with
+per-platform implementations, so it stays substitutable by a fake in tests.
 
 ---
 
@@ -146,9 +152,11 @@ a Kotlin-focused vendor (Touchlab, etc.).
 | Testing | **kotlin.test** + **Turbine** + **kotlinx.coroutines.test** |
 
 **DI is a user choice.** Library code uses constructor injection — no `Module`,
-no service locator. The `Wake` interface and its `UdpBroadcaster` seam are wired
-by constructor; the consumer's app graph (or just `val wake = Wake()`) supplies
-the rest.
+no service locator. `Wake.up(...)` is a zero-ceremony static call; a consumer who
+wants a test seam depends on the `WakeSender` interface and has it injected by
+constructor (`class Feature(val wake: WakeSender = Wake.asSender())`), wiring it
+through their own app graph (Koin, Hilt, hand-rolled). The library itself never
+depends on a DI container.
 
 ### Step 2 — KMP-capable third-party
 
@@ -189,7 +197,7 @@ document the numbers in a comment.
 ## 7. UI — native per platform
 
 UI lives in the platform apps. The shared module exposes commands as
-`suspend fun` returning sealed result types (`Wake.wake` → `WakeResult`). The
+`suspend fun` returning sealed result types (`Wake.up` → `WakeResult`). The
 shared module **never** depends on a UI framework. No `androidx.compose.*` in
 any `/wake` source set.
 
@@ -220,23 +228,34 @@ site.
 **`@ObjCName(swiftName = "...")` to rename.** Strip the noun from the verb; let
 the parameter label carry it. (`openUrl(url)` → `@ObjCName(swiftName = "open")`.)
 
-> **Framework-name / type-name collision.** The Kotlin type, factory, and
-> (naively) the framework would all be named `Wake`, which collides on the Swift
-> side: SKIE renames a `Wake` interface to `Wake_` when it clashes with the
-> module name, and a top-level `Wake()` factory shadows the module qualifier in
-> SKIE's generated Swift. We avoid all of this by naming the framework **`WakeKit`**
-> (the convention plugin appends a `Kit` suffix to the derived base name, and
-> `kmmbridge { frameworkName }` matches). With a distinct module name the Kotlin
-> `Wake` type and `Wake()` factory keep their clean names in Swift; consumers
-> `import WakeKit`. If you add a new module or rename the framework, keep the
-> module name distinct from any public type name.
+> **Framework name vs. type name.** The framework module is **`WakeKit`** (the
+> convention plugin appends a `Kit` suffix to the derived base name, and
+> `kmmbridge { frameworkName }` matches). Keeping the module name distinct from
+> the public type name `Wake` avoids SKIE renaming the type to `Wake_` on a
+> module-vs-type clash; consumers `import WakeKit` and use a clean `Wake`. If you
+> add a new module or rename the framework, keep the module name distinct from
+> any public type name.
+>
+> **`object` → `.shared` in Swift, and the `Wake.up` sweetener.** `Wake` is a
+> Kotlin `object`, which SKIE/Kotlin-Native render in Swift as a class reached
+> through a generated `Wake.shared` singleton accessor — so the raw Swift call is
+> `try await Wake.shared.up(mac:)`. To keep the `Wake.up(mac:)` pun in Swift, a
+> hand-written extension in `wake/src/appleMain/swift/Wake+Up.swift` adds a
+> *static* `Wake.up(...)` that delegates to `Wake.shared.up(...)`. SKIE
+> auto-discovers `src/appleMain/swift/` (the convention plugin sets
+> `swiftBundling.enabled = false`), so no Gradle wiring is needed. This mirrors
+> the sibling `:reachable` repo's `Reachability+Shared.swift`. Note SKIE renders
+> a bridged `suspend fun` as `async throws` (the `throws` carries cancellation),
+> so the extension is `async throws` and forwards with `try await`.
 
 **`@HiddenFromObjC`** — hide Kotlin-only APIs from the generated header.
 
 **`@Throws(...)`** — required on every public `suspend fun` and any public
 function that can throw across the boundary. List the **domain exceptions** the
-function actually throws. **Wake's `wake` never throws — it returns a
-`WakeResult` — so no `@Throws` is needed.**
+function actually throws. **`Wake.up` never throws — it returns a `WakeResult` —
+so no `@Throws` is needed.** (SKIE still renders the bridged signature as
+`async throws` to carry cancellation; that is automatic and is not something we
+annotate.)
 
 **Do NOT include `CancellationException` in `@Throws`.** SKIE routes coroutine
 cancellation through Swift's native `Task.cancel()`; adding it pollutes the
@@ -257,7 +276,9 @@ public sealed interface WakeResult {
     public data class NetworkError(val message: String) : WakeResult
 }
 
-public suspend fun wake(mac: String, ...): WakeResult
+public object Wake {
+    public suspend fun up(mac: String, ...): WakeResult
+}
 ```
 
 **Template in this repo:** `wake/src/commonMain/kotlin/com/happycodelucky/wake/Wake.kt`.
@@ -277,7 +298,10 @@ crossing the Swift boundary.
 5. No `Pair`/`Triple` in public API.
 6. No star-projected generics across the boundary. Concrete types.
 7. No companion-object factories for Swift-facing entry points. Top-level
-   functions or constructors.
+   functions, constructors, or — as with `Wake` — a top-level `object` whose
+   `.shared` Swift rendering is smoothed over by a hand-written Swift extension
+   (§8 "object → `.shared`"). Don't reach for a `companion object` factory: SKIE
+   renders it as `Type.companion.make(...)`, which no extension cleanly hides.
 8. `Int` over `Long` when the range allows.
 
 ---
@@ -333,14 +357,16 @@ rebuilds the debug XCFramework and flips `Package.swift` to a local path;
 ## 11. Testing
 
 - All shared logic gets `commonTest` coverage. The magic-packet builder, MAC
-  parser, IPv4 parser, and `DefaultWake` orchestration are all pure and tested
-  there with no real sockets.
+  parser, IPv4 parser, and the `performWake` orchestration are all pure and
+  tested there with no real sockets (the orchestration via a recording
+  `UdpBroadcaster` fake).
 - `wake/src/androidHostTest` exercises the real `java.net` send against a
   loopback `DatagramSocket` — the one broadcaster verified end-to-end live.
 - `kotlinx.coroutines.test` with `runTest` and virtual time. Never
   `Thread.sleep`.
-- `:wake-testing`'s `FakeWake` is the consumer-facing fake; inject it by
-  constructor (Wake has no singleton to install).
+- `:wake-testing`'s `FakeWake` is the consumer-facing fake; it implements the
+  `WakeSender` seam, so inject it by constructor where your code depends on a
+  `WakeSender` (there is no `Wake` instance or singleton to install).
 
 ---
 

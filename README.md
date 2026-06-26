@@ -23,18 +23,18 @@ though the target device and its access point may need WoWLAN enabled.
 ### Kotlin
 
 ```kotlin
-val wake = Wake()
-when (val result = wake.wake("AA:BB:CC:DD:EE:FF")) {
+when (val result = Wake.up("AA:BB:CC:DD:EE:FF")) {
     is WakeResult.Success -> println("magic packet sent")
     is WakeResult.InvalidMacAddress -> println("bad MAC: ${result.reason}")
     is WakeResult.NetworkError -> println("send failed: ${result.message}")
 }
 
 // Cross a router that forwards directed broadcasts, or change the port:
-wake.wake("aa-bb-cc-dd-ee-ff", broadcastAddress = "192.168.1.255", port = 7)
+Wake.up("aa-bb-cc-dd-ee-ff", broadcastAddress = "192.168.1.255", port = 7)
 ```
 
-MAC strings may use colons (`AA:BB:CC:DD:EE:FF`), hyphens
+`Wake` is a stateless object — there's nothing to construct or close; just call
+`Wake.up(...)`. MAC strings may use colons (`AA:BB:CC:DD:EE:FF`), hyphens
 (`aa-bb-cc-dd-ee-ff`), or no separators (`aabbccddeeff`), case-insensitive.
 
 ### Swift
@@ -42,8 +42,7 @@ MAC strings may use colons (`AA:BB:CC:DD:EE:FF`), hyphens
 ```swift
 import WakeKit
 
-let wake = Wake()
-switch await wake.wake(mac: "AA:BB:CC:DD:EE:FF") {
+switch try await Wake.up(mac: "AA:BB:CC:DD:EE:FF") {
 case .success: print("magic packet sent")
 case let .invalidMacAddress(reason): print("bad MAC: \(reason)")
 case let .networkError(message): print("send failed: \(message)")
@@ -51,8 +50,12 @@ case let .networkError(message): print("send failed: \(message)")
 ```
 
 The Swift module / SPM product is `WakeKit` (the framework is named with a
-"Kit" suffix so the module name doesn't collide with the `Wake` type). The
-`Wake` type and `Wake()` factory read identically in Kotlin and Swift.
+"Kit" suffix so the module name doesn't collide with the `Wake` type). `Wake.up`
+reads identically in Kotlin and Swift: a hand-written Swift extension maps the
+static `Wake.up(mac:)` onto SKIE's `Wake.shared.up(...)`. The Swift form is
+`try await` because SKIE renders the bridged suspend call as `async throws`
+(carrying task cancellation); `up` itself reports failures through `WakeResult`,
+never by throwing.
 
 ## Platforms
 
@@ -66,17 +69,25 @@ consuming apps.
 
 ## Testing
 
-`:wake-testing` ships `FakeWake`, a recording implementation of the `Wake`
-interface that captures every wake call and returns a programmable `WakeResult`
-without opening a socket. Wake is stateless, so there is no singleton to install
-— construct a `FakeWake` and inject it:
+Because `Wake.up(...)` is a static call, a feature you want to unit-test depends
+on the small `WakeSender` interface instead — production wires `Wake.asSender()`,
+tests wire `FakeWake` from `:wake-testing`. `FakeWake` records every `up` call
+and returns a programmable `WakeResult` without opening a socket:
 
 ```kotlin
+// Production: WakeMyDesktop(wake = Wake.asSender())
+class WakeMyDesktop(private val wake: WakeSender = Wake.asSender()) {
+    suspend fun run() = wake.up("AA:BB:CC:DD:EE:FF")
+}
+
+// Test:
 val fake = FakeWake(result = WakeResult.NetworkError("no route to host"))
-val feature = MyFeature(wake = fake)
-feature.wakeDesktop()
+WakeMyDesktop(wake = fake).run()
 assertEquals("AA:BB:CC:DD:EE:FF", fake.lastCall?.mac)
 ```
+
+Code that doesn't need a test seam can ignore `WakeSender` and call `Wake.up(...)`
+directly.
 
 ## Build
 

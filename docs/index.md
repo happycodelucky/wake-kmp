@@ -13,8 +13,7 @@ the generated [API reference](api/index.html) (built by Dokka via
 === "Kotlin"
 
     ```kotlin
-    val wake = Wake()
-    when (val result = wake.wake("AA:BB:CC:DD:EE:FF")) {
+    when (val result = Wake.up("AA:BB:CC:DD:EE:FF")) {
         is WakeResult.Success -> println("magic packet sent")
         is WakeResult.InvalidMacAddress -> println("bad MAC: ${result.reason}")
         is WakeResult.NetworkError -> println("send failed: ${result.message}")
@@ -26,8 +25,7 @@ the generated [API reference](api/index.html) (built by Dokka via
     ```swift
     import WakeKit
 
-    let wake = Wake()
-    switch await wake.wake(mac: "AA:BB:CC:DD:EE:FF") {
+    switch try await Wake.up(mac: "AA:BB:CC:DD:EE:FF") {
     case .success: print("magic packet sent")
     case let .invalidMacAddress(reason): print("bad MAC: \(reason)")
     case let .networkError(message): print("send failed: \(message)")
