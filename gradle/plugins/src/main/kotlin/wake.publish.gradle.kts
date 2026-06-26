@@ -64,7 +64,7 @@ mavenPublishing {
 
     pom {
         // `name` and `description` are the module build script's job.
-        url.set("https://github.com/happycodelucky/wake")
+        url.set("https://github.com/happycodelucky/wake-kmp")
         inceptionYear.set("2026")
 
         licenses {
@@ -82,9 +82,9 @@ mavenPublishing {
             }
         }
         scm {
-            url.set("https://github.com/happycodelucky/wake")
-            connection.set("scm:git:https://github.com/happycodelucky/wake.git")
-            developerConnection.set("scm:git:ssh://git@github.com/happycodelucky/wake.git")
+            url.set("https://github.com/happycodelucky/wake-kmp")
+            connection.set("scm:git:https://github.com/happycodelucky/wake-kmp.git")
+            developerConnection.set("scm:git:ssh://git@github.com/happycodelucky/wake-kmp.git")
         }
     }
 }

@@ -347,8 +347,9 @@ forbidden.** Two channels, no overlap:
   `spmDevBuild` the local-dev form). Don't hand-edit it beyond the initial stub;
   never commit the local-dev form.
 
-> The `release.yml` workflow is deferred for the initial scaffold; the Gradle
-> wiring (KMMBridge + vanniktech) is already in place.
+> The `release.yml` workflow drives both channels (Maven Central via vanniktech,
+> SPM via KMMBridge); see [`.github/PUBLISHING.md`](.github/PUBLISHING.md) for the
+> maintainer runbook and one-time secret setup.
 
 **Local development override:** `mise run spm:dev` (`./gradlew :wake:spmDevBuild`)
 rebuilds the debug XCFramework and flips `Package.swift` to a local path;

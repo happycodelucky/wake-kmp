@@ -5,9 +5,9 @@ over UDP broadcast to wake a device on the network by its MAC address. One small
 headless library, shared across iOS, macOS, Android, and the JVM.
 
 > Status: initial scaffold. Library core (`:wake` + `:wake-testing`), the build
-> toolchain, and CI are in place. The release workflow is deferred — see
-> [Deferred / future work](#deferred--future-work). API reference HTML is
-> generated on demand by Dokka (`mise run docs`).
+> toolchain, CI, and the Maven Central + SPM release workflow are in place — see
+> [`.github/PUBLISHING.md`](.github/PUBLISHING.md) to cut a release. API
+> reference HTML is generated on demand by Dokka (`mise run docs`).
 
 ## What it does
 
@@ -108,8 +108,6 @@ for the project rules.
 
 ## Deferred / future work
 
-- **Release workflow** — Maven Central + KMMBridge SPM publishing (the Gradle
-  wiring is already in place; only the GitHub Actions `release.yml` is missing).
 - **Subnet-directed broadcast** computation from the device's IP + netmask.
 - **Apple `IP_BOUND_IF`** egress-interface binding for multi-interface hosts.
 - **Android `WifiManager` multicast lock** + a `Context`-taking factory overload,
