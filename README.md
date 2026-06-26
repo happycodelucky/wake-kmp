@@ -5,9 +5,9 @@ over UDP broadcast to wake a device on the network by its MAC address. One small
 headless library, shared across iOS, macOS, Android, and the JVM.
 
 > Status: initial scaffold. Library core (`:wake` + `:wake-testing`), the build
-> toolchain, and CI are in place. Sample apps and the release workflow are
-> deferred — see [Deferred / future work](#deferred--future-work). API reference
-> HTML is generated on demand by Dokka (`mise run docs`).
+> toolchain, and CI are in place. The release workflow is deferred — see
+> [Deferred / future work](#deferred--future-work). API reference HTML is
+> generated on demand by Dokka (`mise run docs`).
 
 ## What it does
 
@@ -64,12 +64,14 @@ never by throwing.
 |---|---|
 | iOS / macOS (`iosArm64`, `iosSimulatorArm64`, `macosArm64`) | POSIX UDP sockets (`socket` / `setsockopt(SO_BROADCAST)` / `sendto`) via Kotlin/Native cinterop |
 | Android (`arm64-v8a`, minSdk 30) | `java.net.DatagramSocket` with broadcast enabled; declares `android.permission.INTERNET` |
-| JVM (desktop, JVM 21) | `java.net.DatagramSocket` — the same `java.net` broadcaster as Android, shared via a `jvmShared` source set |
+| JVM (desktop, JVM 21) | `java.net.DatagramSocket` — the same `java.net` broadcaster as Android, shared via a `jvmShared` source set. No permission or manifest needed |
 
-Android and the JVM desktop target share their entire UDP send path (one
-`java.net` broadcaster in a `jvmShared` intermediate source set). Native targets
-are ARM-only, no x86 (CLAUDE.md §1). The shared module is headless — UI lives in
-the consuming apps.
+The same `Wake.up(...)` call shown above works on every target. Android and the
+JVM desktop target share their entire UDP send path (one `java.net` broadcaster
+in a `jvmShared` intermediate source set); the only difference is that Android
+contributes an `INTERNET`-permission manifest entry, while a plain JVM process
+needs no permission to open a broadcast socket. Native targets are ARM-only, no
+x86 (CLAUDE.md §1). The library is headless — any UI lives in the consuming app.
 
 ## Testing
 
@@ -96,8 +98,8 @@ directly.
 ## Build
 
 ```bash
-mise install        # provision JDK, Gradle, gh, python
-mise run check      # ktlint + detekt + all unit tests, both modules
+mise install        # provision JDK, Gradle, gh
+mise run check      # ktlint + detekt + all unit tests (all targets, both modules)
 mise run build      # assemble the release WakeKit.xcframework
 ```
 
@@ -106,7 +108,6 @@ for the project rules.
 
 ## Deferred / future work
 
-- **Sample apps** (`apps/ios`, `apps/macos`, `apps/android`).
 - **Release workflow** — Maven Central + KMMBridge SPM publishing (the Gradle
   wiring is already in place; only the GitHub Actions `release.yml` is missing).
 - **Subnet-directed broadcast** computation from the device's IP + netmask.
