@@ -63,9 +63,12 @@ never by throwing.
 |---|---|
 | iOS / macOS (`iosArm64`, `iosSimulatorArm64`, `macosArm64`) | POSIX UDP sockets (`socket` / `setsockopt(SO_BROADCAST)` / `sendto`) via Kotlin/Native cinterop |
 | Android (`arm64-v8a`, minSdk 30) | `java.net.DatagramSocket` with broadcast enabled; declares `android.permission.INTERNET` |
+| JVM (desktop, JVM 21) | `java.net.DatagramSocket` — the same `java.net` broadcaster as Android, shared via a `jvmShared` source set |
 
-ARM-only, no x86 (CLAUDE.md §1). The shared module is headless — UI lives in the
-consuming apps.
+Android and the JVM desktop target share their entire UDP send path (one
+`java.net` broadcaster in a `jvmShared` intermediate source set). Native targets
+are ARM-only, no x86 (CLAUDE.md §1). The shared module is headless — UI lives in
+the consuming apps.
 
 ## Testing
 

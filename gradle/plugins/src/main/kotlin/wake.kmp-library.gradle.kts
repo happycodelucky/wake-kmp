@@ -3,9 +3,11 @@
  * libraries (`:wake`, `:wake-testing`).
  *
  * Owns everything the two modules previously duplicated (CLAUDE.md §1, §2,
- * §4): the ARM-only target matrix, the apple intermediate source set, the
- * Android library block, compiler options, JVM target wiring, and the
- * SKIE settings that must match across modules. Per-module identity
+ * §4): the ARM-only native target matrix, the apple intermediate source set,
+ * the Android library block, the JVM target, the `jvmShared` intermediate that
+ * lets Android and JVM share their `java.net` UDP broadcaster, compiler
+ * options, and the SKIE settings that must match across modules. Per-module
+ * identity
  * (framework base name, bundle id, Android namespace) is derived from the
  * project name so adding a module means applying this plugin and nothing
  * else:
@@ -101,6 +103,35 @@ kotlin {
 
         withHostTestBuilder { /* enables the androidHostTest source set */ }
     }
+
+    // --- JVM target (CLAUDE.md §1) ------------------------------------------
+    // Plain JVM desktop. The UDP send is pure `java.net.DatagramSocket`, so JVM
+    // and Android share the exact same broadcaster — see the `jvmShared`
+    // intermediate source set below. JVM target level is pinned to 21 by the
+    // KotlinJvmTarget loop further down.
+    jvm()
+
+    // --- jvmShared intermediate source set ----------------------------------
+    // Android + JVM share their `java.net` UDP broadcaster verbatim, but the new
+    // `com.android.kotlin.multiplatform.library` plugin does NOT support a
+    // custom group in `applyDefaultHierarchyTemplate` (JetBrains KT-80409), so
+    // we wire the intermediate set manually with `dependsOn` instead of a
+    // hierarchy-template group. `jvmSharedMain` sits between `commonMain` and
+    // both platform leaves; `jvmSharedTest` does the same for the test sets.
+    // The Apple targets never see `jvmShared`, so `java.*` stays off K/N.
+    val jvmSharedMain = sourceSets.create("jvmSharedMain")
+    val jvmSharedTest = sourceSets.create("jvmSharedTest")
+
+    jvmSharedMain.dependsOn(sourceSets.getByName("commonMain"))
+    jvmSharedTest.dependsOn(sourceSets.getByName("commonTest"))
+
+    sourceSets.getByName("androidMain").dependsOn(jvmSharedMain)
+    sourceSets.getByName("jvmMain").dependsOn(jvmSharedMain)
+
+    // The Android host-test set is created lazily by withHostTestBuilder above;
+    // wire it (and jvmTest) onto the shared test set once it exists.
+    sourceSets.named("androidHostTest").configure { dependsOn(jvmSharedTest) }
+    sourceSets.getByName("jvmTest").dependsOn(jvmSharedTest)
 
     // --- Compiler options (CLAUDE.md §2, §3) ---------------------------------
     @OptIn(ExperimentalKotlinGradlePluginApi::class)

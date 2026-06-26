@@ -1,10 +1,12 @@
 /*
- * Wake — Android UDP broadcaster (java.net).
+ * Wake — JVM/Android UDP broadcaster (java.net).
  *
- * CLAUDE.md §5 Step 3: AndroidX / platform first-party. `java.net.DatagramSocket`
- * is the standard JVM/Android UDP primitive; the send blocks, so it runs on
- * Dispatchers.IO (available on Android, unlike Apple Kotlin/Native). Any send
- * failure is folded into WakeSendOutcome.Failed so the public API never throws.
+ * Shared by both the JVM desktop and Android targets — this file lives in the
+ * `jvmShared` intermediate source set. `java.net.DatagramSocket` is the standard
+ * JVM/Android UDP primitive (no Android API in sight); the send blocks, so it
+ * runs on Dispatchers.IO (available on both, unlike Apple Kotlin/Native). Any
+ * send failure is folded into WakeSendOutcome.Failed so the public API never
+ * throws.
  */
 package com.happycodelucky.wake.internal
 

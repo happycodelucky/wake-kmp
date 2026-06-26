@@ -40,9 +40,11 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
         }
 
-        // androidHostTest source set is created by the convention plugin's
-        // withHostTestBuilder. Configure its deps here.
-        getByName("androidHostTest").dependencies {
+        // jvmSharedTest is the intermediate test set that both `jvmTest` and
+        // `androidHostTest` depend on (set up in the convention plugin). This
+        // module has no JVM-only tests, but the leaves still need a test
+        // runtime on the JVM side, so declare it once here.
+        getByName("jvmSharedTest").dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
         }

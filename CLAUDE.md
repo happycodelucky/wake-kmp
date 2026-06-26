@@ -26,14 +26,22 @@ no constructor to inject, so consumers who want a test seam depend on the small
 `WakeSender` interface (production = `Wake.asSender()`, tests = `FakeWake` from
 `:wake-testing`); callers who don't need a seam just call `Wake.up(...)`.
 
-**Targets — ARM only, no exceptions:**
+**Targets:**
 
 - `iosArm64` (device) + `iosSimulatorArm64` (Apple Silicon simulator)
-- Android `arm64-v8a`
 - `macosArm64` (desktop)
+- Android `arm64-v8a`
+- `jvm` (desktop, JVM 21) — architecture-neutral bytecode; the ARM-only rule
+  below applies to the *native* slices and the Android ABI, not to the JVM
+  target (it runs on whatever JVM the consumer has).
 
-**Out of scope:** all x86/x86_64, `armeabi-v7a`, Intel Macs, watchOS, tvOS,
-Linux, Windows, Kotlin/JS.
+**Native / Android targets are ARM only, no exceptions.** Android and the JVM
+target share one `java.net` UDP broadcaster via the `jvmShared` source set —
+neither touches a native socket.
+
+**Out of scope:** native x86/x86_64 slices, `armeabi-v7a`, Intel-Mac native
+targets, watchOS, tvOS, Linux/Windows *native*, Kotlin/JS. (The JVM target is
+not a native slice — it is the one architecture-neutral target we ship.)
 
 ---
 
@@ -114,14 +122,21 @@ Allowed exceptions:
   /src/commonMain      object Wake + WakeSender, packet/MAC/IPv4 logic, the UdpBroadcaster seam
   /src/appleMain       PosixUdpBroadcaster (POSIX cinterop) + defaultBroadcaster() actual
                        + swift/Wake+Up.swift (the Wake.up(mac:) sweetener)
-  /src/androidMain     JvmUdpBroadcaster (java.net) + defaultBroadcaster() actual + manifest
+  /src/jvmSharedMain   JvmUdpBroadcaster (java.net) + defaultBroadcaster() actual — shared by
+                       Android + JVM (both dependsOn it)
+  /src/androidMain     AndroidManifest (INTERNET permission) — Android-only bits
+  /src/jvmMain         (JVM-only bits, currently none beyond the shared broadcaster)
   /src/commonTest      pure-logic + performWake orchestration tests
-  /src/androidHostTest live loopback-socket test of the java.net send
+  /src/jvmSharedTest   live loopback-socket test of the java.net send — runs on JVM + Android host
 /wake-testing         public FakeWake recorder (implements WakeSender) for consumers' tests
 /apps/*               native sample apps (deferred)
 ```
 
-`applyDefaultHierarchyTemplate()`. Don't hand-roll source set wiring.
+`applyDefaultHierarchyTemplate()` for the apple group; **Android + JVM share code
+via a manually-wired `jvmShared` intermediate** (`sourceSets.create` +
+`dependsOn`), because the `com.android.kotlin.multiplatform.library` plugin does
+not support a custom group in `applyDefaultHierarchyTemplate` (JetBrains
+KT-80409). Don't otherwise hand-roll source-set wiring.
 
 `expect`/`actual` surface stays minimal — a single one-line
 `internal expect fun defaultBroadcaster(): UdpBroadcaster` selects the platform
@@ -360,8 +375,10 @@ rebuilds the debug XCFramework and flips `Package.swift` to a local path;
   parser, IPv4 parser, and the `performWake` orchestration are all pure and
   tested there with no real sockets (the orchestration via a recording
   `UdpBroadcaster` fake).
-- `wake/src/androidHostTest` exercises the real `java.net` send against a
-  loopback `DatagramSocket` — the one broadcaster verified end-to-end live.
+- `wake/src/jvmSharedTest` exercises the real `java.net` send against a loopback
+  `DatagramSocket` — the one broadcaster verified end-to-end live. It runs on
+  both the `jvm` target and the Android host-test JVM (both depend on
+  `jvmShared`).
 - `kotlinx.coroutines.test` with `runTest` and virtual time. Never
   `Thread.sleep`.
 - `:wake-testing`'s `FakeWake` is the consumer-facing fake; it implements the

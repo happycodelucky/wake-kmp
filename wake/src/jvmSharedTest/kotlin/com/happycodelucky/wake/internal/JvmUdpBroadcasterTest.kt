@@ -11,9 +11,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 /**
- * Exercises the real `java.net` send path on the local JVM (androidHostTest
- * runs on the host, so sockets work without a device). Sends to loopback and
- * asserts the exact bytes arrive — the only broadcaster we can verify
+ * Exercises the real `java.net` send path on the local JVM. Lives in the
+ * `jvmShared` test set, so it runs on BOTH the `jvm` target and the Android
+ * host-test JVM — sockets work without a device on either. Sends to loopback
+ * and asserts the exact bytes arrive — the only broadcaster we can verify
  * end-to-end against a live socket.
  */
 class JvmUdpBroadcasterTest {

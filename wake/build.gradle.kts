@@ -51,9 +51,12 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
         }
 
-        // androidHostTest source set is created by the convention plugin's
-        // withHostTestBuilder. Configure its deps here.
-        getByName("androidHostTest").dependencies {
+        // jvmSharedTest is the intermediate test set both `jvmTest` and
+        // `androidHostTest` depend on (set up in the convention plugin). The
+        // live loopback-socket test (JvmUdpBroadcasterTest) lives here, so its
+        // test deps must be declared on this set — they flow down to both
+        // leaves. (Declaring them again on the leaves would duplicate.)
+        getByName("jvmSharedTest").dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
             implementation(project(":wake-testing"))

@@ -77,6 +77,10 @@ run = "./gradlew :wake:linkDebugFrameworkMacosArm64"
 description = "Assemble the Android AAR."
 run = "./gradlew :wake:assembleAndroidMain"
 
+[tasks."build:jvm"]
+description = "Compile + jar the JVM desktop target."
+run = "./gradlew :wake:jvmJar"
+
 [tasks.xcframework]
 description = "Alias for `build` — produces the release WakeKit.xcframework."
 depends = ["build"]
