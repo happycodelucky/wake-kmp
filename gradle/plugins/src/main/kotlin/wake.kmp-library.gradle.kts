@@ -14,9 +14,9 @@
  *   wake-testing  → framework "WakeTestingKit", namespace com.happycodelucky.wake.testing
  *
  * The framework gets a "Kit" suffix so the Swift module name (`WakeKit`) never
- * collides with the Kotlin `Wake` type. Without the suffix, SKIE renames the
- * `Wake` interface to `Wake_` in Swift (module vs. type clash) and a top-level
- * `Wake()` factory shadows the module qualifier in SKIE's generated Swift.
+ * collides with the Kotlin `Wake` object. Without the suffix, SKIE would rename
+ * the `Wake` type to `Wake_` in Swift (module-vs-type clash) and the bare `Wake`
+ * symbol would shadow the module qualifier in SKIE's generated Swift.
  *
  * Module build scripts keep only what genuinely differs: dependencies,
  * the KMMBridge SPM distribution config (`:wake` only), and POM
