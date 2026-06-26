@@ -2,11 +2,12 @@
 
 Kotlin Multiplatform **Wake-on-LAN / Wake-on-Wireless**: send a magic packet
 over UDP broadcast to wake a device on the network by its MAC address. One small
-headless library, shared across iOS, macOS, and Android.
+headless library, shared across iOS, macOS, Android, and the JVM.
 
 > Status: initial scaffold. Library core (`:wake` + `:wake-testing`), the build
-> toolchain, and CI are in place. Sample apps, the release workflow, and the
-> docs site are deferred — see [Deferred / future work](#deferred--future-work).
+> toolchain, and CI are in place. Sample apps and the release workflow are
+> deferred — see [Deferred / future work](#deferred--future-work). API reference
+> HTML is generated on demand by Dokka (`mise run docs`).
 
 ## What it does
 
@@ -108,7 +109,6 @@ for the project rules.
 - **Sample apps** (`apps/ios`, `apps/macos`, `apps/android`).
 - **Release workflow** — Maven Central + KMMBridge SPM publishing (the Gradle
   wiring is already in place; only the GitHub Actions `release.yml` is missing).
-- **Docs site** — mkdocs content (Dokka API generation is wired up).
 - **Subnet-directed broadcast** computation from the device's IP + netmask.
 - **Apple `IP_BOUND_IF`** egress-interface binding for multi-interface hosts.
 - **Android `WifiManager` multicast lock** + a `Context`-taking factory overload,

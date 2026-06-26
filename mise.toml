@@ -20,7 +20,6 @@
 [tools]
 java   = "temurin-21.0.11+10.0.LTS"   # CLAUDE.md §2 — JDK 21 LTS, Apple Silicon aarch64.
 gradle = "9.5.1"                       # Matches gradle/wrapper/gradle-wrapper.properties.
-python = "3.12.13"                     # docs/requirements.txt mkdocs toolchain.
 gh     = "2.94.0"                       # release.yml (deferred) uses `gh release create`.
 
 # Deliberately NOT pinned here:
@@ -103,23 +102,9 @@ run = "git restore Package.swift"
 
 # --- docs ------------------------------------------------------------------
 
-[tasks."docs:install"]
-description = "Install the pinned mkdocs toolchain into the active python."
-run = "pip install -r docs/requirements.txt"
-
-[tasks."docs:dokka"]
-description = "Generate Dokka HTML and mirror it into docs/api/."
-run = "./gradlew copyDokkaToDocs"
-
-[tasks."docs:serve"]
-description = "Local mkdocs preview at http://localhost:8000."
-depends = ["docs:dokka"]
-run = "mkdocs serve"
-
-[tasks."docs:build"]
-description = "Strict mkdocs build — what CI runs."
-depends = ["docs:dokka"]
-run = "mkdocs build --strict"
+[tasks.docs]
+description = "Generate the Dokka API-reference HTML (output under build/dokka/html)."
+run = "./gradlew dokkaGenerate"
 
 # --- housekeeping ----------------------------------------------------------
 

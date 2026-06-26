@@ -11,7 +11,7 @@ import kotlin.jvm.JvmInline
  * `internal` and constructed only through [parseMacBytes] → [MacAddress.of], so
  * a [MacAddress] always wraps exactly [MAC_LENGTH] bytes in big-endian wire
  * order. Kept as a zero-cost `value class` for the construction path; the
- * public API ([com.happycodelucky.wake.Wake.wake]) takes a `String` and never
+ * public API ([com.happycodelucky.wake.Wake.up]) takes a `String` and never
  * exposes this type across the Swift boundary.
  */
 @JvmInline

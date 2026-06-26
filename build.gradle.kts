@@ -15,8 +15,9 @@ plugins {
     alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.detekt) apply false
 
-    // Dokka v2: Kotlin API doc generator. Produces HTML for the public API of
-    // every source set. The HTML is copied into docs/api/ for mkdocs to bundle.
+    // Dokka v2: Kotlin API doc generator. Produces browsable HTML for the
+    // public API of every source set (run `./gradlew dokkaGenerate`; output
+    // lands in build/dokka/html). Standalone — there is no docs site.
     alias(libs.plugins.dokka)
 }
 
@@ -78,7 +79,7 @@ subprojects {
     }
 }
 
-// Apply Dokka to the published modules and aggregate into docs/api/.
+// Aggregate Dokka HTML from the published modules into one site at the root.
 dokka {
     moduleName.set("Wake")
 }
@@ -87,22 +88,8 @@ dependencies {
     // Aggregate Dokka HTML from the published modules into the root build
     // (Dokka v2 pattern). `:wake-testing` is a public-API module too —
     // consumers writing tests want to see the FakeWake surface documented
-    // next to the main library.
+    // next to the main library. `./gradlew dokkaGenerate` builds the HTML
+    // under build/dokka/html.
     dokka(project(":wake"))
     dokka(project(":wake-testing"))
-}
-
-/**
- * Copies Dokka v2 HTML output into docs/api/, where mkdocs picks it up.
- *
- * The aggregated HTML lives at build/dokka/html after dokkaGeneratePublicationHtml.
- * mkdocs looks at docs/api/ when it builds the site; CI runs Dokka before mkdocs.
- */
-tasks.register<Copy>("copyDokkaToDocs") {
-    group = "documentation"
-    description = "Copies aggregated Dokka HTML into docs/api/ for mkdocs."
-
-    dependsOn("dokkaGeneratePublicationHtml")
-    from(layout.buildDirectory.dir("dokka/html"))
-    into(layout.projectDirectory.dir("docs/api"))
 }

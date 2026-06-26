@@ -40,13 +40,6 @@ apps/macos/macOSApp.xcodeproj/
 spm/
 .kmmbridge/
 
-# --- Docs toolchain ---
-.venv/
-site/
-docs/api/
-__pycache__/
-*.pyc
-
 # --- Claude Code review-loop artefacts ---
 .claude/findings/
 .claude/worktrees/
