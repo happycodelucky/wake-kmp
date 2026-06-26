@@ -77,12 +77,15 @@ jobs:
   release:
     runs-on: macos-latest
 
-    # The four MAVEN_CENTRAL_* secrets live on the `continuous-deployment`
-    # GitHub environment, not the repository scope. Without this binding
-    # `secrets.MAVEN_CENTRAL_*` resolves to the empty string at runtime
-    # and vanniktech fails with cryptic auth / signing errors that look
-    # like a credentials problem in the downstream tool.
-    environment: continuous-deployment
+    # The four MAVEN_CENTRAL_* secrets are GitHub **organization** secrets
+    # (shared across every com.happycodelucky package), scoped to this repo.
+    # Org secrets resolve directly in `secrets.MAVEN_CENTRAL_*` with no
+    # `environment:` binding. If `secrets.MAVEN_CENTRAL_*` ever resolves to an
+    # empty string at runtime, the cause is almost always the org secret's
+    # repository-access list not including this repo (Org → Settings → Secrets
+    # and variables → Actions → the secret → Repository access). vanniktech
+    # then fails with cryptic auth / signing errors that look like a downstream
+    # credentials problem.
 
     steps:
       - name: Check out repository
