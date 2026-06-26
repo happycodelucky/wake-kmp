@@ -191,9 +191,9 @@ namespace is ever moved.
     - Value: the verification key, verbatim
 5. Wait for DNS propagation, then click **Verify Namespace** in the Portal.
 
-> The `com.happycodelucky` namespace is shared across this org's libraries
-> (e.g. `reachable`), so it may already be verified — in which case skip this
-> step.
+> The `com.happycodelucky` namespace is shared across your other
+> `com.happycodelucky` libraries (e.g. `reachable`), so it's almost certainly
+> already verified — in which case skip this step.
 
 ### 2. Generate a Sonatype user token
 
@@ -249,13 +249,9 @@ key won't show up in email searches until you click the link.
 
 ### 4. Configure GitHub Actions secrets
 
-These four secrets are the **same** values every `com.happycodelucky` package
-publishes with, so set them once as **organization** secrets rather than copying
-them into each repo: Org → **Settings** → **Secrets and variables** →
-**Actions** → **New organization secret**. Set **Repository access** to
-*Selected repositories* and include `wake-kmp` (plus your other publishing
-repos). The release job reads them directly via `secrets.MAVEN_CENTRAL_*` — there
-is no `environment:` binding.
+Add the four as **repository** secrets: Repo → **Settings** → **Secrets and
+variables** → **Actions** → **New repository secret**. The release job reads them
+directly via `secrets.MAVEN_CENTRAL_*` — there is no `environment:` binding.
 
 | Secret name                          | Value                                              |
 |--------------------------------------|----------------------------------------------------|
@@ -264,9 +260,11 @@ is no `environment:` binding.
 | `MAVEN_CENTRAL_SIGNING_KEY`          | Full contents of `wake-signing.asc` (from step 3)  |
 | `MAVEN_CENTRAL_SIGNING_KEY_PASSWORD` | The GPG key passphrase (from step 3)               |
 
-If you already publish another package from this org, these org secrets likely
-exist already — just add `wake-kmp` to their **Repository access** list and skip
-re-entering the values.
+These are the **same** values your other `com.happycodelucky` packages publish
+with — the Sonatype user token and GPG key are reused across all of them, not
+generated per repo. Copy the values from another repo's secrets (or your local
+`~/.gradle/gradle.properties` for the token). Repository secrets aren't shared
+between repos, so they do need to be entered once here.
 
 `MAVEN_CENTRAL_SIGNING_KEY` must be the entire ASCII-armoured block, including
 the `-----BEGIN PGP PRIVATE KEY BLOCK-----` and `-----END PGP PRIVATE KEY
@@ -275,9 +273,8 @@ newlines.
 
 The key ID itself doesn't need to be stored — the in-memory key blob carries it.
 
-> If you prefer per-repo secrets (or a GitHub *environment* with protection
-> rules like required reviewers), add the four under Repo → **Settings** →
-> **Secrets and variables** → **Actions** instead. For an environment, also add
+> Want a manual approval gate before the irreversible publish? Put the four in a
+> GitHub *environment* (with required reviewers / a wait timer) instead, then add
 > `environment: <name>` to the `release` job in `release.yml` so the job can see
 > them.
 
@@ -324,16 +321,18 @@ local `~/.m2`, so it's safe to run any time.
 
 If the token leaks or you want a fresh one, generate a new one in the Portal
 (Step 2 above), then update `MAVEN_CENTRAL_USERNAME` and `MAVEN_CENTRAL_PASSWORD`
-in the org secrets — every package under the namespace picks up the new value at
-once. The old token continues to work until you revoke it from the Portal.
+in the repository secrets (and in your other packages' repos, since each holds
+its own copy). The old token continues to work until you revoke it from the
+Portal.
 
 ### GPG signing key
 
 If the signing key leaks: generate a new key (Step 3 above), upload its public
 half, then update `MAVEN_CENTRAL_SIGNING_KEY` and
-`MAVEN_CENTRAL_SIGNING_KEY_PASSWORD` in the org secrets. Past releases signed
-with the old key remain valid — keyservers retain the public half forever, so
-Central can still verify their signatures. Future releases will be
+`MAVEN_CENTRAL_SIGNING_KEY_PASSWORD` in the repository secrets (and in your other
+packages' repos that sign with the same key). Past releases signed with the old
+key remain valid — keyservers retain the public half forever, so Central can
+still verify their signatures. Future releases will be
 signed with the new key.
 
 You can also publish a revocation certificate for the old key if you generated
