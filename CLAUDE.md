@@ -1,0 +1,381 @@
+# CLAUDE.md — Kotlin Multiplatform Project Guide
+
+Rules for working in this repo. Read before starting any task.
+
+---
+
+## 1. Scope
+
+**Wake** is a Wake-on-LAN / Wake-on-Wireless library: it builds a 102-byte
+magic packet (six `0xFF` bytes + the target's 6-byte MAC repeated 16×) and
+sends it as a UDP broadcast datagram to wake a device on the network.
+
+**Shared:** packet construction, MAC / address parsing and validation, the
+public `Wake` API, the platform UDP send. Anything that isn't actually UI.
+
+**Not shared:** UI. Each platform ships its own native UI layer (SwiftUI on
+iOS, Jetpack Compose on Android, SwiftUI/AppKit on macOS desktop). **Do not add
+Compose Multiplatform.** Do not propose it. The shared module is headless.
+
+**Wake is stateless and one-shot.** Each `Wake.wake(...)` opens a socket, sends,
+and closes — there is no long-lived observer. So there is **no `.shared`
+singleton, no `AutoCloseable`, no `androidx.startup` attach, and no global
+test-override stack.** Tests inject a `FakeWake` (in `:wake-testing`) by
+constructor.
+
+**Targets — ARM only, no exceptions:**
+
+- `iosArm64` (device) + `iosSimulatorArm64` (Apple Silicon simulator)
+- Android `arm64-v8a`
+- `macosArm64` (desktop)
+
+**Out of scope:** all x86/x86_64, `armeabi-v7a`, Intel Macs, watchOS, tvOS,
+Linux, Windows, Kotlin/JS.
+
+---
+
+## 2. Versions
+
+Use the **latest stable**. Never EAP, RC, or beta on `main`. All versions live
+in `gradle/libs.versions.toml`.
+
+Floors as of last edit:
+
+- Kotlin 2.3.21 (bounded above by SKIE's supported range — do not bump past it)
+- Gradle 9.x
+- AGP 9.x with `com.android.kotlin.multiplatform.library` (use the new `android`
+  block, not `androidTarget`)
+- JVM target 21
+- Latest stable Xcode that the current Kotlin release supports
+
+**Before adding or bumping any dependency: web-search the latest stable
+version.** Versions in your training data are stale. Don't guess.
+
+K2 only. No K1 fallback.
+
+---
+
+## 3. Language standards
+
+- `languageVersion` and `apiVersion` set to current stable.
+- Stable APIs only. Experimental APIs require an explicit `@OptIn` with a
+  one-line comment explaining why.
+- No `!!` in production code.
+- `internal` by default. Widen visibility only when needed. Explicit API mode
+  is on — every public symbol needs a visibility modifier and KDoc.
+- `data class`, `value class`, `sealed interface` over open hierarchies. Use
+  `value class` for typed IDs (e.g. the internal `MacAddress`) — free at runtime.
+- `kotlin.time` for durations. `kotlin.uuid.Uuid` for UUIDs.
+- KDoc on all public API. Comments explain *why*, not *what*.
+- 4-space indent, 120-col max, trailing commas on multi-line.
+- ktlint + detekt must pass.
+
+**Apple platform names — preserve their casing.** `iOS`, `macOS`, `tvOS`,
+`watchOS`, `iPadOS`, `visionOS` are the canonical spellings; never lowercase the
+trailing acronym in identifiers, file names, types, packages, or comments. The
+Kotlin convention of camel-casing acronyms (`HtmlParser`) does **not** apply —
+these are Apple brand names and we keep them recognisable.
+
+Allowed exceptions:
+- **Identifiers we don't own** — `applyDefaultHierarchyTemplate { withIos() /
+  withMacos() }`, the JetBrains source-set names (`iosMain` / `macosMain`), and
+  the K/N target names (`iosArm64`, `macosArm64`).
+- **Package names** — Kotlin packages are conventionally all-lowercase
+  (`com.happycodelucky.wake`).
+
+**Concurrency:**
+
+- `kotlinx.coroutines` only. Every `CoroutineScope` has a clear owner with a
+  defined cancellation lifecycle. Wake holds no scopes — its sends run on
+  `withContext(Dispatchers.IO)` (Android) / `Dispatchers.Default` (Apple K/N
+  has no `IO`).
+- No `GlobalScope`. Ever.
+- `Flow`/`StateFlow`/`SharedFlow` over callbacks and `LiveData`.
+- For shared mutable state guarded **across `suspend` boundaries**, use
+  `kotlinx.coroutines.sync.Mutex` or actor-style coroutines.
+- For short, **non-suspending** critical sections, use
+  `kotlinx.atomicfu.locks.synchronized` with a `SynchronizedObject`.
+  Single-flag state belongs in `kotlinx.atomicfu.atomic`.
+- **Never** `kotlin.synchronized` (JVM-only), `java.util.concurrent.locks.*`,
+  `@Synchronized`, `volatile`, or `Object.wait/notify`. None are portable.
+- A `kotlinx.atomicfu.locks.synchronized` block must not call `suspend`
+  functions. If the body needs to suspend, you wanted a `Mutex`.
+- New memory model only. No legacy freezing logic.
+
+---
+
+## 4. Module layout
+
+```
+/wake                 headless KMP library — magic packet + UDP send
+  /src/commonMain      Wake API, packet/MAC/IPv4 logic, the UdpBroadcaster seam
+  /src/appleMain       PosixUdpBroadcaster (POSIX cinterop) + Wake() factory
+  /src/androidMain     JvmUdpBroadcaster (java.net) + Wake() factory + manifest
+  /src/commonTest      pure-logic + orchestration tests
+  /src/androidHostTest live loopback-socket test of the java.net send
+/wake-testing         public FakeWake recorder for consumers' tests
+/apps/*               native sample apps (deferred)
+```
+
+`applyDefaultHierarchyTemplate()`. Don't hand-roll source set wiring.
+
+`expect`/`actual` surface stays minimal. The platform UDP send is an internal
+`interface UdpBroadcaster` with per-platform implementations selected by the
+platform `Wake()` factory — not a top-level `expect class` (CLAUDE.md §8).
+
+---
+
+## 5. Libraries — Kotlin-first, always
+
+A "Kotlin-first" library is written in Kotlin, designed for KMP, idiomatic
+(suspend, Flow, sealed types), published by JetBrains, the Kotlin Foundation, or
+a Kotlin-focused vendor (Touchlab, etc.).
+
+### Step 1 — Use these. No substitutions without a written reason.
+
+| Concern | Library |
+|---|---|
+| HTTP (low-level) | **Ktor Client** |
+| Serialization | **kotlinx.serialization** |
+| Coroutines | **kotlinx.coroutines** |
+| Atomics | **kotlinx.atomicfu** |
+| Date/time | **kotlinx.datetime** (never `java.time` in `commonMain`) |
+| I/O / buffers | **kotlinx.io** |
+| Logging | **Kermit** (Touchlab) |
+| Dependency injection | **Koin** (consumer's graph; not required by the library) |
+| Testing | **kotlin.test** + **Turbine** + **kotlinx.coroutines.test** |
+
+**DI is a user choice.** Library code uses constructor injection — no `Module`,
+no service locator. The `Wake` interface and its `UdpBroadcaster` seam are wired
+by constructor; the consumer's app graph (or just `val wake = Wake()`) supplies
+the rest.
+
+### Step 2 — KMP-capable third-party
+
+If no Step 1 option exists, check **klibs.io**: active maintenance, supports our
+Tier 1 targets, compatible with current Kotlin, permissive license.
+
+### Step 3 — Native per-platform
+
+The UDP broadcast send is here. **Apple:** raw POSIX sockets via
+`platform.posix` cinterop (`socket` / `setsockopt(SO_BROADCAST)` / `sendto`).
+**Android:** `java.net.DatagramSocket` with broadcast enabled.
+
+> **Do NOT use Ktor for the UDP send.** Ktor's UDP socket path crashes on
+> macOS/iOS (KTOR-6489). For a one-shot broadcast the platform primitive is
+> genuinely simpler than the wrapper (§6) and avoids the bug. Note on Darwin:
+> `htons` is a macro and `inet_pton` is not exported by `platform.posix` — the
+> byte-order and dotted-quad math is done in pure Kotlin (`internal/Ipv4.kt`).
+
+### Step 4 — Roll our own
+
+Default answer: use the library. Override only with a measured benchmark or a
+clearly missing capability. Never for crypto, TLS, JSON, HTTP, date/time, or
+databases — correctness-hard and battle-tested.
+
+---
+
+## 6. Roll our own — when and when not
+
+Default: use the library. Override only when it does far more than we need at a
+binary-size cost, profiling shows it in a hot path, it forces a bad allocation
+pattern, it lacks a capability we need, or **the platform primitive is genuinely
+simple** (the UDP broadcast send is exactly this case). When proposing a
+hand-written replacement, benchmark it on the slowest target device first and
+document the numbers in a comment.
+
+---
+
+## 7. UI — native per platform
+
+UI lives in the platform apps. The shared module exposes commands as
+`suspend fun` returning sealed result types (`Wake.wake` → `WakeResult`). The
+shared module **never** depends on a UI framework. No `androidx.compose.*` in
+any `/wake` source set.
+
+---
+
+## 8. Swift interop
+
+Default Kotlin → ObjC → Swift bridge is bad. We fix it with SKIE + annotations.
+
+### SKIE
+
+**SKIE (Touchlab) is mandatory** on the iOS framework build:
+
+- Real Swift enums for Kotlin `enum class` (exhaustive `switch`).
+- Sealed class/interface exhaustivity via `onEnum(of:)`.
+- `suspend` → `async`/`await` with cancellation.
+- `Flow` → `AsyncSequence` with element types preserved.
+- Default arguments preserved as Swift overloads.
+
+Rules: don't disable SKIE; don't bump Kotlin past SKIE's supported range; don't
+enable JetBrains' direct Swift export yet.
+
+### Annotations
+
+Every public Kotlin API consumed from Swift must read like Swift at the call
+site.
+
+**`@ObjCName(swiftName = "...")` to rename.** Strip the noun from the verb; let
+the parameter label carry it. (`openUrl(url)` → `@ObjCName(swiftName = "open")`.)
+
+> **Framework-name / type-name collision.** The Kotlin type, factory, and
+> (naively) the framework would all be named `Wake`, which collides on the Swift
+> side: SKIE renames a `Wake` interface to `Wake_` when it clashes with the
+> module name, and a top-level `Wake()` factory shadows the module qualifier in
+> SKIE's generated Swift. We avoid all of this by naming the framework **`WakeKit`**
+> (the convention plugin appends a `Kit` suffix to the derived base name, and
+> `kmmbridge { frameworkName }` matches). With a distinct module name the Kotlin
+> `Wake` type and `Wake()` factory keep their clean names in Swift; consumers
+> `import WakeKit`. If you add a new module or rename the framework, keep the
+> module name distinct from any public type name.
+
+**`@HiddenFromObjC`** — hide Kotlin-only APIs from the generated header.
+
+**`@Throws(...)`** — required on every public `suspend fun` and any public
+function that can throw across the boundary. List the **domain exceptions** the
+function actually throws. **Wake's `wake` never throws — it returns a
+`WakeResult` — so no `@Throws` is needed.**
+
+**Do NOT include `CancellationException` in `@Throws`.** SKIE routes coroutine
+cancellation through Swift's native `Task.cancel()`; adding it pollutes the
+generated signature.
+
+### Sealed result types over `kotlin.Result<T>`
+
+**No `kotlin.Result<T>` in any public Swift-facing signature.** SKIE has no
+mapping for it — Swift sees an opaque `KotlinResult` with no exhaustive
+`switch`. Use a project-defined `sealed interface`, which SKIE renders as an
+exhaustive Swift `enum` via `onEnum(of:)`.
+
+```kotlin
+// Right — SKIE renders this as a Swift enum; `onEnum(of:)` makes it exhaustive.
+public sealed interface WakeResult {
+    public data object Success : WakeResult
+    public data class InvalidMacAddress(val reason: String) : WakeResult
+    public data class NetworkError(val message: String) : WakeResult
+}
+
+public suspend fun wake(mac: String, ...): WakeResult
+```
+
+**Template in this repo:** `wake/src/commonMain/kotlin/com/happycodelucky/wake/Wake.kt`.
+
+The same rule applies to `Pair<A, B>` / `Triple<…>` at the public boundary —
+define a named `data class`.
+
+**Internal use of `runCatching` is fine.** This rule is about return types
+crossing the Swift boundary.
+
+### API design for Swift consumers
+
+1. Verbs without the object. `open(url:)`, not `openUrl(url:)`.
+2. `sealed interface` for results, not nullable + error code.
+3. `Flow<T>` over callbacks. Never a callback-based public API in `commonMain`.
+4. No `kotlin.Result<T>` at the boundary.
+5. No `Pair`/`Triple` in public API.
+6. No star-projected generics across the boundary. Concrete types.
+7. No companion-object factories for Swift-facing entry points. Top-level
+   functions or constructors.
+8. `Int` over `Long` when the range allows.
+
+---
+
+## 9. Apple distribution — KMMBridge → GitHub Releases → SPM
+
+We use **Touchlab's KMMBridge** to publish the Apple framework. **CocoaPods is
+forbidden.** Two channels, no overlap:
+
+- **Maven Central** (vanniktech `gradle-maven-publish-plugin`) — Android AAR,
+  `kotlinMultiplatform` metadata, per-target klibs. For Gradle/KMP consumers.
+- **GitHub Releases** (KMMBridge) — the SKIE-enhanced `WakeKit.xcframework` zip
+  for pure-Swift SPM consumers, referenced from the root `Package.swift` by URL +
+  sha256 checksum.
+
+**Rules:**
+
+- KMMBridge config lives in the `kmmbridge { }` block in `wake/build.gradle.kts`;
+  the framework name is `WakeKit`, matching the convention plugin's `baseName`.
+- Versioning: the release workflow computes the version and passes
+  `-Pversion=X.Y.Z`; KMMBridge tags `v${version}`.
+- Publishing is CI-only: `kmmBridgePublish` only exists when
+  `-PENABLE_PUBLISHING=true` is passed.
+- Swift engineers never open a Gradle file. They `swift package update`.
+- Don't vendor `XCFramework` zips. Everything flows through Release assets + the
+  committed `Package.swift`.
+- `Package.swift` is generated (`kmmBridgePublish` writes the released form,
+  `spmDevBuild` the local-dev form). Don't hand-edit it beyond the initial stub;
+  never commit the local-dev form.
+
+> The `release.yml` workflow is deferred for the initial scaffold; the Gradle
+> wiring (KMMBridge + vanniktech) is already in place.
+
+**Local development override:** `mise run spm:dev` (`./gradlew :wake:spmDevBuild`)
+rebuilds the debug XCFramework and flips `Package.swift` to a local path;
+`mise run spm:restore` restores the committed version.
+
+---
+
+## 10. Build & tooling
+
+- Single source of truth: `gradle/libs.versions.toml`.
+- Local toolchain pinned in `mise.toml` (JDK, Gradle wrapper, gh, Python). Run
+  `mise install` on first checkout. mise does not pin Kotlin/AGP/SKIE — the
+  version catalog owns those.
+- Configuration cache + build cache on. Don't disable.
+- Per-PR CI (`.github/workflows/ci.yml`): `mise run check` (build commonMain +
+  every Tier 1 target, ktlint + detekt + unit tests) and `mise run build`
+  (assemble the XCFramework).
+
+---
+
+## 11. Testing
+
+- All shared logic gets `commonTest` coverage. The magic-packet builder, MAC
+  parser, IPv4 parser, and `DefaultWake` orchestration are all pure and tested
+  there with no real sockets.
+- `wake/src/androidHostTest` exercises the real `java.net` send against a
+  loopback `DatagramSocket` — the one broadcaster verified end-to-end live.
+- `kotlinx.coroutines.test` with `runTest` and virtual time. Never
+  `Thread.sleep`.
+- `:wake-testing`'s `FakeWake` is the consumer-facing fake; inject it by
+  constructor (Wake has no singleton to install).
+
+---
+
+## 12. Task workflow
+
+1. Read this file. Read `gradle/libs.versions.toml`.
+2. Adding a dependency? Web-search the latest stable version first.
+3. Need platform-specific behavior? Walk Section 5 in order. Don't skip to
+   `expect`/`actual`.
+4. Considering a hand-written replacement? Section 6 process. Default is "use
+   the library."
+5. Adding a public API consumed from Swift? Apply Section 8 rules at design
+   time, not after.
+6. Done means: `mise run check` passes and
+   `./gradlew :wake:linkDebugFrameworkIosArm64` builds clean.
+7. Opting into experimental APIs? One-line comment explaining what's
+   experimental and the rollback path.
+
+---
+
+## 13. Hard rules
+
+- No Compose Multiplatform.
+- No CocoaPods.
+- No x86/x86_64.
+- No `GlobalScope`.
+- No `!!`.
+- No `java.time` in `commonMain`.
+- No Ktor UDP (KTOR-6489 crashes on Apple).
+- No `kotlin.synchronized`, `@Synchronized`, `java.util.concurrent.locks.*`, or
+  `volatile` — only `kotlinx.atomicfu.locks.synchronized` (non-suspending) and
+  `kotlinx.coroutines.sync.Mutex` (suspending).
+- No suspend calls inside a `kotlinx.atomicfu.locks.synchronized` block.
+- No EAP/RC/beta on `main`.
+- No callback-based public APIs in `commonMain`.
+- No UI dependencies in `/wake`.
+- No hand-edited `Package.swift` (beyond the initial stub).
+- No vendored `XCFramework` in the repo.

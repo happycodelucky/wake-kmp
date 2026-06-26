@@ -1,0 +1,23 @@
+# Wake — detekt overrides on top of the default config (CLAUDE.md §3).
+#
+# `buildUponDefaultConfig = true` is set in the root build script, so this file
+# only needs to record DEVIATIONS from detekt's defaults. The deviations below
+# relax two rules for TEST sources only — test code conventionally uses
+# descriptive backtick / underscore method names and inline literals, neither of
+# which is a smell in a test. Production code stays held to the strict defaults.
+
+style:
+  MagicNumber:
+    # Test sources may use literal constants freely; the assertion *is* the spec.
+    excludes:
+      - "**/commonTest/**"
+      - "**/androidHostTest/**"
+      - "**/*Test.kt"
+
+naming:
+  FunctionNaming:
+    # Allow descriptive test method names (underscores / backticks).
+    excludes:
+      - "**/commonTest/**"
+      - "**/androidHostTest/**"
+      - "**/*Test.kt"

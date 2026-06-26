@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Wake — Android library manifest.
+
+  Declares the INTERNET permission so the library's `java.net.DatagramSocket`
+  can open and send the UDP broadcast magic packet. The Android Manifest Merger
+  pulls this into any consuming app's manifest at build time, so consumers do
+  not need to add it themselves.
+
+  INTERNET is a normal-protection permission (not "dangerous"), so no runtime
+  grant is needed at any API level.
+
+  Future work: broadcast egress on some Wi-Fi chipsets needs a held
+  `WifiManager.MulticastLock`, which would also require
+  CHANGE_WIFI_MULTICAST_STATE (and a Context-taking factory). Not declared
+  here in this version — see README.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+</manifest>

@@ -1,0 +1,124 @@
+# mise — toolchain pins and task surface for the Wake KMP repo.
+# Run `mise install` to provision tools; `mise tasks` to list runnable tasks.
+#
+# Keep this file in sync with:
+#   gradle/libs.versions.toml                 (jdk target, AGP, Kotlin)
+#   gradle/wrapper/gradle-wrapper.properties  (distributionUrl)
+#
+# Single source of truth for non-Gradle build deps. Versions for Kotlin,
+# AGP, SKIE, KMMBridge, ktlint-gradle, etc. live in gradle/libs.versions.toml
+# (CLAUDE.md §2, §10) — mise must not duplicate them.
+#
+# Bootstrap on a fresh machine:
+#   brew install mise
+#   mise trust
+#   mise install
+#
+# Xcode is NOT managed by mise. Install the latest stable Xcode that SKIE
+# supports; CONTRIBUTING.md records the current minimum.
+
+[tools]
+java   = "temurin-21.0.11+10.0.LTS"   # CLAUDE.md §2 — JDK 21 LTS, Apple Silicon aarch64.
+gradle = "9.5.1"                       # Matches gradle/wrapper/gradle-wrapper.properties.
+python = "3.12.13"                     # docs/requirements.txt mkdocs toolchain.
+gh     = "2.94.0"                       # release.yml (deferred) uses `gh release create`.
+
+# Deliberately NOT pinned here:
+#   - kotlin: gradle/libs.versions.toml owns it (CLAUDE.md §2).
+#   - cocoapods: forbidden (CLAUDE.md §9, §13).
+#   - node: not used in this repo.
+#   - xcodegen / swiftlint / swiftformat: sample apps are deferred (CLAUDE.md §4).
+
+# ---------------------------------------------------------------------------
+# Tasks. Naming: `domain:action`, colon-separated, lowercase.
+# Lowercase ios/macos in task names is fine — these are CLI tokens, not
+# source-identifier symbols. The Apple-casing rule (CLAUDE.md §3) still
+# applies to file names, types, and comments.
+# ---------------------------------------------------------------------------
+
+# --- check / lint / format -------------------------------------------------
+
+# Both published modules are listed explicitly. Gradle's `check` is
+# per-project — `:wake:check` alone never runs `:wake-testing`'s test suite.
+[tasks.check]
+description = "Run ktlint + detekt + every unit test in both published modules (iOS simulator, macOS, Android host)."
+run = "./gradlew :wake:check :wake-testing:check"
+
+[tasks.test]
+description = "Alias for `check`."
+depends = ["check"]
+
+[tasks.lint]
+description = "ktlint + detekt only (no tests), both published modules."
+run = "./gradlew :wake:ktlintCheck :wake:detekt :wake-testing:ktlintCheck :wake-testing:detekt"
+
+[tasks.format]
+description = "ktlint auto-fix, both published modules."
+run = "./gradlew :wake:ktlintFormat :wake-testing:ktlintFormat"
+
+# --- build -----------------------------------------------------------------
+
+[tasks.build]
+description = "Assemble the release WakeKit.xcframework (sample-app local SPM)."
+run = "./gradlew :wake:assembleWakeKitXCFramework"
+
+[tasks."build:ios"]
+description = "Link debug iOS framework slices (device + Apple Silicon simulator)."
+run = """
+./gradlew :wake:linkDebugFrameworkIosArm64 \
+          :wake:linkDebugFrameworkIosSimulatorArm64
+"""
+
+[tasks."build:macos"]
+description = "Link the debug macOS framework slice (Apple Silicon)."
+run = "./gradlew :wake:linkDebugFrameworkMacosArm64"
+
+[tasks."build:android"]
+description = "Assemble the Android AAR."
+run = "./gradlew :wake:assembleAndroidMain"
+
+[tasks.xcframework]
+description = "Alias for `build` — produces the release WakeKit.xcframework."
+depends = ["build"]
+
+# --- iteration helpers -----------------------------------------------------
+
+[tasks."spm:dev"]
+description = "Rebuild the debug WakeKit.xcframework and point /Package.swift at it (local dev mode)."
+# KMMBridge's `spmDevBuild` builds the debug XCFramework and REWRITES the root
+# /Package.swift to a `.binaryTarget(path: …)` pointing at
+# wake/build/XCFrameworks/debug/WakeKit.xcframework. After the first tagged
+# release the committed Package.swift is the *released* form (a remote
+# `.binaryTarget(url:checksum:)`). The local-dev rewrite is working-tree-only:
+# do NOT commit it. `mise run spm:restore` puts the committed version back.
+run = "./gradlew :wake:spmDevBuild"
+
+[tasks."spm:restore"]
+description = "Restore the committed (released) /Package.swift after spm:dev rewrote it."
+run = "git restore Package.swift"
+
+# --- docs ------------------------------------------------------------------
+
+[tasks."docs:install"]
+description = "Install the pinned mkdocs toolchain into the active python."
+run = "pip install -r docs/requirements.txt"
+
+[tasks."docs:dokka"]
+description = "Generate Dokka HTML and mirror it into docs/api/."
+run = "./gradlew copyDokkaToDocs"
+
+[tasks."docs:serve"]
+description = "Local mkdocs preview at http://localhost:8000."
+depends = ["docs:dokka"]
+run = "mkdocs serve"
+
+[tasks."docs:build"]
+description = "Strict mkdocs build — what CI runs."
+depends = ["docs:dokka"]
+run = "mkdocs build --strict"
+
+# --- housekeeping ----------------------------------------------------------
+
+[tasks.clean]
+description = "Gradle clean."
+run = "./gradlew clean"
