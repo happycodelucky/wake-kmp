@@ -39,13 +39,40 @@ gh     = "2.94.0"                       # release.yml (deferred) uses `gh releas
 
 # Both published modules are listed explicitly. Gradle's `check` is
 # per-project — `:wake:check` alone never runs `:wake-testing`'s test suite.
+# `check` also runs the public-API/ABI gate (`checkKotlinAbi`) — it fails if the
+# public surface changed without a deliberate `mise run api:dump`.
 [tasks.check]
-description = "Run ktlint + detekt + every unit test in both published modules (iOS simulator, macOS, Android host)."
+description = "Full local check — what CI runs: ktlint + detekt + the API/ABI check + every unit test, both modules."
 run = "./gradlew :wake:check :wake-testing:check"
 
+# --- test ------------------------------------------------------------------
+# `test` is the fast inner loop (macOS arm64 only — covers commonTest). The
+# per-platform tasks below back the split CI legs (Ubuntu runs test:jvm +
+# test:android; macOS runs the Apple targets via `check`).
+
 [tasks.test]
-description = "Alias for `check`."
-depends = ["check"]
+description = "Fast inner-loop tests — macOS arm64 only (covers commonTest), both modules."
+run = "./gradlew :wake:macosArm64Test :wake-testing:macosArm64Test"
+
+[tasks."test:jvm"]
+description = "JVM unit tests (fastest — no K/N compile; covers commonTest + the live jvmShared loopback test), both modules."
+run = "./gradlew :wake:jvmTest :wake-testing:jvmTest"
+
+[tasks."test:android"]
+description = "Android host unit tests, both modules."
+run = "./gradlew :wake:testAndroidHostTest :wake-testing:testAndroidHostTest"
+
+[tasks."test:ios"]
+description = "iOS simulator arm64 tests (slower — boots a simulator), both modules."
+run = "./gradlew :wake:iosSimulatorArm64Test :wake-testing:iosSimulatorArm64Test"
+
+[tasks."test:apple"]
+description = "Both Apple test targets (macOS arm64 + iOS simulator arm64), both modules."
+depends = ["test", "test:ios"]
+
+[tasks."test:all"]
+description = "Every test target across every platform, both modules."
+depends = ["test", "test:ios", "test:android", "test:jvm"]
 
 [tasks.lint]
 description = "ktlint + detekt only (no tests), both published modules."
@@ -54,6 +81,29 @@ run = "./gradlew :wake:ktlintCheck :wake:detekt :wake-testing:ktlintCheck :wake-
 [tasks.format]
 description = "ktlint auto-fix, both published modules."
 run = "./gradlew :wake:ktlintFormat :wake-testing:ktlintFormat"
+
+# --- public API / ABI ------------------------------------------------------
+# The committed dumps under <module>/api/ are the reference for the public
+# surface. `api:check` runs as part of `check` (and CI) — it fails if the public
+# API changed without a deliberate `api:dump`. Review the api/ diff like code.
+
+[tasks."api:check"]
+description = "Verify the public API/ABI matches the committed dump (also runs inside `check`)."
+run = "./gradlew :wake:checkKotlinAbi :wake-testing:checkKotlinAbi"
+
+[tasks."api:dump"]
+description = "Regenerate the committed public API/ABI dump after an INTENTIONAL public change. Review + commit the api/ diff."
+run = "./gradlew :wake:updateKotlinAbi :wake-testing:updateKotlinAbi"
+
+# --- build health ----------------------------------------------------------
+
+[tasks."dependencies:analyze"]
+description = "Dependency hygiene: unused deps, api-vs-implementation misuse, undeclared transitives (dependency-analysis)."
+run = "./gradlew buildHealth"
+
+[tasks."build:doctor"]
+description = "Surface Gradle Doctor build-health diagnostics (slow config, cache misuse, JVM mismatches)."
+run = "./gradlew assemble --dry-run"
 
 # --- build -----------------------------------------------------------------
 
@@ -105,6 +155,26 @@ run = "git restore Package.swift"
 [tasks.docs]
 description = "Generate the Dokka API-reference HTML (output under build/dokka/html)."
 run = "./gradlew dokkaGenerate"
+
+# --- dependencies ----------------------------------------------------------
+# Renovate (renovate.json5) opens PRs in CI; these are the local equivalents.
+
+[tasks."dependencies:outdated"]
+description = "List dependencies with newer stable versions (ben-manes gradle-versions-plugin)."
+run = "./gradlew dependencyUpdates -Drevision=release"
+
+[tasks."dependencies:update"]
+description = "Rewrite gradle/libs.versions.toml to the latest stable versions, then review the diff (version-catalog-update)."
+# Not truly interactive: it rewrites the catalog; review with `git diff
+# gradle/libs.versions.toml` and accept or revert. Web-search any bump that
+# crosses the Kotlin/SKIE pin before accepting (CLAUDE.md §2).
+run = "./gradlew versionCatalogUpdate"
+
+# --- aggregates ------------------------------------------------------------
+
+[tasks.ci]
+description = "Run the exact CI gate locally: full check + release WakeKit.xcframework."
+run = "./gradlew :wake:check :wake-testing:check :wake:assembleWakeKitXCFramework"
 
 # --- housekeeping ----------------------------------------------------------
 

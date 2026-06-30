@@ -1,0 +1,42 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, macosArm64]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.happycodelucky.wake:wake-testing>
+final class com.happycodelucky.wake.testing/FakeWake : com.happycodelucky.wake/WakeSender { // com.happycodelucky.wake.testing/FakeWake|null[0]
+    constructor <init>(com.happycodelucky.wake/WakeResult = ...) // com.happycodelucky.wake.testing/FakeWake.<init>|<init>(com.happycodelucky.wake.WakeResult){}[0]
+
+    final val callCount // com.happycodelucky.wake.testing/FakeWake.callCount|{}callCount[0]
+        final fun <get-callCount>(): kotlin/Int // com.happycodelucky.wake.testing/FakeWake.callCount.<get-callCount>|<get-callCount>(){}[0]
+    final val calls // com.happycodelucky.wake.testing/FakeWake.calls|{}calls[0]
+        final fun <get-calls>(): kotlin.collections/List<com.happycodelucky.wake.testing/WakeCall> // com.happycodelucky.wake.testing/FakeWake.calls.<get-calls>|<get-calls>(){}[0]
+    final val lastCall // com.happycodelucky.wake.testing/FakeWake.lastCall|{}lastCall[0]
+        final fun <get-lastCall>(): com.happycodelucky.wake.testing/WakeCall? // com.happycodelucky.wake.testing/FakeWake.lastCall.<get-lastCall>|<get-lastCall>(){}[0]
+    final val wasCalled // com.happycodelucky.wake.testing/FakeWake.wasCalled|{}wasCalled[0]
+        final fun <get-wasCalled>(): kotlin/Boolean // com.happycodelucky.wake.testing/FakeWake.wasCalled.<get-wasCalled>|<get-wasCalled>(){}[0]
+
+    final fun reset() // com.happycodelucky.wake.testing/FakeWake.reset|reset(){}[0]
+    final suspend fun up(kotlin/String, kotlin/String, kotlin/Int): com.happycodelucky.wake/WakeResult // com.happycodelucky.wake.testing/FakeWake.up|up(kotlin.String;kotlin.String;kotlin.Int){}[0]
+}
+
+final class com.happycodelucky.wake.testing/WakeCall { // com.happycodelucky.wake.testing/WakeCall|null[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/Int) // com.happycodelucky.wake.testing/WakeCall.<init>|<init>(kotlin.String;kotlin.String;kotlin.Int){}[0]
+
+    final val broadcastAddress // com.happycodelucky.wake.testing/WakeCall.broadcastAddress|{}broadcastAddress[0]
+        final fun <get-broadcastAddress>(): kotlin/String // com.happycodelucky.wake.testing/WakeCall.broadcastAddress.<get-broadcastAddress>|<get-broadcastAddress>(){}[0]
+    final val mac // com.happycodelucky.wake.testing/WakeCall.mac|{}mac[0]
+        final fun <get-mac>(): kotlin/String // com.happycodelucky.wake.testing/WakeCall.mac.<get-mac>|<get-mac>(){}[0]
+    final val port // com.happycodelucky.wake.testing/WakeCall.port|{}port[0]
+        final fun <get-port>(): kotlin/Int // com.happycodelucky.wake.testing/WakeCall.port.<get-port>|<get-port>(){}[0]
+
+    final fun component1(): kotlin/String // com.happycodelucky.wake.testing/WakeCall.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.happycodelucky.wake.testing/WakeCall.component2|component2(){}[0]
+    final fun component3(): kotlin/Int // com.happycodelucky.wake.testing/WakeCall.component3|component3(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/Int = ...): com.happycodelucky.wake.testing/WakeCall // com.happycodelucky.wake.testing/WakeCall.copy|copy(kotlin.String;kotlin.String;kotlin.Int){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.happycodelucky.wake.testing/WakeCall.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.happycodelucky.wake.testing/WakeCall.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.happycodelucky.wake.testing/WakeCall.toString|toString(){}[0]
+}

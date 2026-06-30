@@ -29,6 +29,7 @@ import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 
 plugins {
@@ -152,6 +153,23 @@ kotlin {
                 }
             }
         }
+    }
+
+    // --- Public-API / ABI validation (CLAUDE.md §10) ------------------------
+    // The Kotlin Gradle plugin's built-in ABI validation tracks the public API
+    // surface across ALL targets (JVM + KLib/native) in one checked-in dump.
+    // `mise run api:check` (wired into `check` via `checkKotlinAbi`) fails CI if
+    // the public surface changes without an explicit `mise run api:dump` — so
+    // breaking changes to a published library, and to the Swift boundary, are
+    // always deliberate and reviewed.
+    //
+    // When the host can't compile every target (e.g. the Ubuntu CI leg can't
+    // build the Apple slices), the plugin infers their ABI from the prior dump
+    // instead of failing — so the checked-in dump stays complete. The Apple-target
+    // ABI is verified on the macOS leg of CI, which can build those slices.
+    @OptIn(ExperimentalAbiValidation::class)
+    abiValidation {
+        enabled.set(true)
     }
 }
 

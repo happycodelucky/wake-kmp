@@ -1,0 +1,56 @@
+public final class com/happycodelucky/wake/Wake {
+	public static final field INSTANCE Lcom/happycodelucky/wake/Wake;
+	public final fun up (Ljava/lang/String;Ljava/lang/String;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun up$default (Lcom/happycodelucky/wake/Wake;Ljava/lang/String;Ljava/lang/String;ILkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class com/happycodelucky/wake/WakeKt {
+	public static final field DEFAULT_BROADCAST_ADDRESS Ljava/lang/String;
+	public static final field DEFAULT_WAKE_PORT I
+}
+
+public abstract interface class com/happycodelucky/wake/WakeResult {
+}
+
+public final class com/happycodelucky/wake/WakeResult$InvalidMacAddress : com/happycodelucky/wake/WakeResult {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/happycodelucky/wake/WakeResult$InvalidMacAddress;
+	public static synthetic fun copy$default (Lcom/happycodelucky/wake/WakeResult$InvalidMacAddress;Ljava/lang/String;ILjava/lang/Object;)Lcom/happycodelucky/wake/WakeResult$InvalidMacAddress;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/happycodelucky/wake/WakeResult$NetworkError : com/happycodelucky/wake/WakeResult {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/happycodelucky/wake/WakeResult$NetworkError;
+	public static synthetic fun copy$default (Lcom/happycodelucky/wake/WakeResult$NetworkError;Ljava/lang/String;ILjava/lang/Object;)Lcom/happycodelucky/wake/WakeResult$NetworkError;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMessage ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/happycodelucky/wake/WakeResult$Success : com/happycodelucky/wake/WakeResult {
+	public static final field INSTANCE Lcom/happycodelucky/wake/WakeResult$Success;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/happycodelucky/wake/WakeSender {
+	public abstract fun up (Ljava/lang/String;Ljava/lang/String;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun up$default (Lcom/happycodelucky/wake/WakeSender;Ljava/lang/String;Ljava/lang/String;ILkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class com/happycodelucky/wake/WakeSender$DefaultImpls {
+	public static synthetic fun up$default (Lcom/happycodelucky/wake/WakeSender;Ljava/lang/String;Ljava/lang/String;ILkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class com/happycodelucky/wake/WakeSenderKt {
+	public static final fun asSender (Lcom/happycodelucky/wake/Wake;)Lcom/happycodelucky/wake/WakeSender;
+}
+

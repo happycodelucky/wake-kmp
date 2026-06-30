@@ -1,0 +1,56 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, macosArm64]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.happycodelucky.wake:wake>
+abstract interface com.happycodelucky.wake/WakeSender { // com.happycodelucky.wake/WakeSender|null[0]
+    abstract suspend fun up(kotlin/String, kotlin/String = ..., kotlin/Int = ...): com.happycodelucky.wake/WakeResult // com.happycodelucky.wake/WakeSender.up|up(kotlin.String;kotlin.String;kotlin.Int){}[0]
+}
+
+sealed interface com.happycodelucky.wake/WakeResult { // com.happycodelucky.wake/WakeResult|null[0]
+    final class InvalidMacAddress : com.happycodelucky.wake/WakeResult { // com.happycodelucky.wake/WakeResult.InvalidMacAddress|null[0]
+        constructor <init>(kotlin/String) // com.happycodelucky.wake/WakeResult.InvalidMacAddress.<init>|<init>(kotlin.String){}[0]
+
+        final val reason // com.happycodelucky.wake/WakeResult.InvalidMacAddress.reason|{}reason[0]
+            final fun <get-reason>(): kotlin/String // com.happycodelucky.wake/WakeResult.InvalidMacAddress.reason.<get-reason>|<get-reason>(){}[0]
+
+        final fun component1(): kotlin/String // com.happycodelucky.wake/WakeResult.InvalidMacAddress.component1|component1(){}[0]
+        final fun copy(kotlin/String = ...): com.happycodelucky.wake/WakeResult.InvalidMacAddress // com.happycodelucky.wake/WakeResult.InvalidMacAddress.copy|copy(kotlin.String){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.happycodelucky.wake/WakeResult.InvalidMacAddress.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.happycodelucky.wake/WakeResult.InvalidMacAddress.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.happycodelucky.wake/WakeResult.InvalidMacAddress.toString|toString(){}[0]
+    }
+
+    final class NetworkError : com.happycodelucky.wake/WakeResult { // com.happycodelucky.wake/WakeResult.NetworkError|null[0]
+        constructor <init>(kotlin/String) // com.happycodelucky.wake/WakeResult.NetworkError.<init>|<init>(kotlin.String){}[0]
+
+        final val message // com.happycodelucky.wake/WakeResult.NetworkError.message|{}message[0]
+            final fun <get-message>(): kotlin/String // com.happycodelucky.wake/WakeResult.NetworkError.message.<get-message>|<get-message>(){}[0]
+
+        final fun component1(): kotlin/String // com.happycodelucky.wake/WakeResult.NetworkError.component1|component1(){}[0]
+        final fun copy(kotlin/String = ...): com.happycodelucky.wake/WakeResult.NetworkError // com.happycodelucky.wake/WakeResult.NetworkError.copy|copy(kotlin.String){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.happycodelucky.wake/WakeResult.NetworkError.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.happycodelucky.wake/WakeResult.NetworkError.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.happycodelucky.wake/WakeResult.NetworkError.toString|toString(){}[0]
+    }
+
+    final object Success : com.happycodelucky.wake/WakeResult { // com.happycodelucky.wake/WakeResult.Success|null[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.happycodelucky.wake/WakeResult.Success.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.happycodelucky.wake/WakeResult.Success.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.happycodelucky.wake/WakeResult.Success.toString|toString(){}[0]
+    }
+}
+
+final object com.happycodelucky.wake/Wake { // com.happycodelucky.wake/Wake|null[0]
+    final suspend fun up(kotlin/String, kotlin/String = ..., kotlin/Int = ...): com.happycodelucky.wake/WakeResult // com.happycodelucky.wake/Wake.up|up(kotlin.String;kotlin.String;kotlin.Int){}[0]
+}
+
+final const val com.happycodelucky.wake/DEFAULT_BROADCAST_ADDRESS // com.happycodelucky.wake/DEFAULT_BROADCAST_ADDRESS|{}DEFAULT_BROADCAST_ADDRESS[0]
+    final fun <get-DEFAULT_BROADCAST_ADDRESS>(): kotlin/String // com.happycodelucky.wake/DEFAULT_BROADCAST_ADDRESS.<get-DEFAULT_BROADCAST_ADDRESS>|<get-DEFAULT_BROADCAST_ADDRESS>(){}[0]
+final const val com.happycodelucky.wake/DEFAULT_WAKE_PORT // com.happycodelucky.wake/DEFAULT_WAKE_PORT|{}DEFAULT_WAKE_PORT[0]
+    final fun <get-DEFAULT_WAKE_PORT>(): kotlin/Int // com.happycodelucky.wake/DEFAULT_WAKE_PORT.<get-DEFAULT_WAKE_PORT>|<get-DEFAULT_WAKE_PORT>(){}[0]
+
+final fun (com.happycodelucky.wake/Wake).com.happycodelucky.wake/asSender(): com.happycodelucky.wake/WakeSender // com.happycodelucky.wake/asSender|asSender@com.happycodelucky.wake.Wake(){}[0]
