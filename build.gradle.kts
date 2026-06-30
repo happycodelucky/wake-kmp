@@ -60,6 +60,25 @@ doctor {
     disallowMultipleDaemons.set(false)
 }
 
+// Stable-only dependency updates (CLAUDE.md §2 / §10: no EAP / RC / Beta on
+// main). ben-manes' `-Drevision=release` only controls which metadata it reads;
+// it still lists pre-releases as candidates. This predicate rejects any version
+// that isn't a stable release (catches -Beta, -RC, -alpha, -M1, -eap,
+// -SNAPSHOT, …), so `mise run dependencies:outdated` shows only real upgrades.
+// littlerobots' version-catalog-update reuses this same predicate, so
+// `mise run dependencies:update` never rewrites the catalog to a pre-release.
+fun isStableVersion(version: String): Boolean {
+    val hasStableKeyword = listOf("RELEASE", "FINAL", "GA").any { version.uppercase().contains(it) }
+    val looksLikePlainNumber = "^[0-9,.v-]+(-r)?$".toRegex().matches(version)
+    return hasStableKeyword || looksLikePlainNumber
+}
+
+tasks.withType<com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask>().configureEach {
+    rejectVersionIf {
+        !isStableVersion(candidate.version)
+    }
+}
+
 subprojects {
     // ktlint + detekt wire onto the KMP plugin — i.e. onto the published
     // library modules only. CLAUDE.md §3: "ktlint + detekt must pass."
