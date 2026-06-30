@@ -161,16 +161,22 @@ run = "./gradlew dokkaGenerate"
 # --- dependencies ----------------------------------------------------------
 # Renovate (renovate.json5) opens PRs in CI; these are the local equivalents.
 
+# `--no-parallel --no-configuration-cache`: ben-manes' `dependencyUpdates` is an
+# old-style task that resolves configurations and touches `Task.project` at
+# execution time — incompatible with both `org.gradle.parallel` and the
+# configuration cache (both on by default in gradle.properties). The flags
+# override those for this one invocation; the rest of the build keeps caching.
+# `versionCatalogUpdate` depends on `dependencyUpdates`, so it needs them too.
 [tasks."dependencies:outdated"]
 description = "List dependencies with newer stable versions (ben-manes gradle-versions-plugin)."
-run = "./gradlew dependencyUpdates -Drevision=release"
+run = "./gradlew dependencyUpdates -Drevision=release --no-parallel --no-configuration-cache"
 
 [tasks."dependencies:update"]
 description = "Rewrite gradle/libs.versions.toml to the latest stable versions, then review the diff (version-catalog-update)."
 # Not truly interactive: it rewrites the catalog; review with `git diff
 # gradle/libs.versions.toml` and accept or revert. Web-search any bump that
 # crosses the Kotlin/SKIE pin before accepting (CLAUDE.md §2).
-run = "./gradlew versionCatalogUpdate"
+run = "./gradlew versionCatalogUpdate --no-parallel --no-configuration-cache"
 
 # --- aggregates ------------------------------------------------------------
 
