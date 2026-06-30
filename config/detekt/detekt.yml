@@ -13,6 +13,12 @@ style:
       - "**/commonTest/**"
       - "**/androidHostTest/**"
       - "**/*Test.kt"
+  MaxLineLength:
+    # ktlint (via .editorconfig, max_line_length = 120) enforces the *real* line
+    # limit and reformats to it. detekt's 140 is deliberate slack above that, so
+    # the occasional long literal in test/data doesn't trip detekt after ktlint
+    # has already accepted the line.
+    maxLineLength: 140
 
 naming:
   FunctionNaming:

@@ -19,6 +19,18 @@ plugins {
     // public API of every source set (run `./gradlew dokkaGenerate`; output
     // lands in build/dokka/html). Standalone — there is no docs site.
     alias(libs.plugins.dokka)
+
+    // Dependency-update tooling (mise dependencies:outdated / dependencies:update).
+    // ben-manes reports updates; version-catalog-update rewrites libs.versions.toml.
+    alias(libs.plugins.ben.manes.versions)
+    alias(libs.plugins.version.catalog.update)
+
+    // Build-health tooling. dependency-analysis adds the root `buildHealth` task
+    // (mise dependencies:analyze) — unused/misused/transitive dependency advice.
+    // gradle-doctor warns on slow config, JVM mismatches, and cache misses on
+    // every build (mise build:doctor surfaces its diagnostics explicitly).
+    alias(libs.plugins.dependency.analysis)
+    alias(libs.plugins.gradle.doctor)
 }
 
 allprojects {
@@ -29,6 +41,42 @@ allprojects {
     // patches (run numbers for CI builds, exact `vX.Y.Z` for releases) without
     // ever committing the override back.
     version = providers.gradleProperty("version").getOrElse("0.1.0-SNAPSHOT")
+}
+
+// Gradle Doctor — build-health diagnostics. mise owns the JDK (via the [tools]
+// pins in mise.toml, CLAUDE.md §10), so its JAVA_HOME checks are advisory here,
+// not fatal: a fresh `git clone && mise run check` must never fail on a tool's
+// environment opinion. The remaining checks (slow config, negative-avoidance,
+// cache misuse) stay on.
+doctor {
+    javaHome {
+        // mise puts the right JDK on PATH; JAVA_HOME may be unset. Warn, don't fail.
+        ensureJavaHomeIsSet.set(false)
+        ensureJavaHomeMatches.set(false)
+        failOnError.set(false)
+    }
+    // Don't fail a build just because another Gradle daemon is alive (common
+    // when an IDE holds one open alongside a terminal build).
+    disallowMultipleDaemons.set(false)
+}
+
+// Stable-only dependency updates (CLAUDE.md §2 / §10: no EAP / RC / Beta on
+// main). ben-manes' `-Drevision=release` only controls which metadata it reads;
+// it still lists pre-releases as candidates. This predicate rejects any version
+// that isn't a stable release (catches -Beta, -RC, -alpha, -M1, -eap,
+// -SNAPSHOT, …), so `mise run dependencies:outdated` shows only real upgrades.
+// littlerobots' version-catalog-update reuses this same predicate, so
+// `mise run dependencies:update` never rewrites the catalog to a pre-release.
+fun isStableVersion(version: String): Boolean {
+    val hasStableKeyword = listOf("RELEASE", "FINAL", "GA").any { version.uppercase().contains(it) }
+    val looksLikePlainNumber = "^[0-9,.v-]+(-r)?$".toRegex().matches(version)
+    return hasStableKeyword || looksLikePlainNumber
+}
+
+tasks.withType<com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask>().configureEach {
+    rejectVersionIf {
+        !isStableVersion(candidate.version)
+    }
 }
 
 subprojects {
@@ -42,6 +90,13 @@ subprojects {
     pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
         apply(plugin = "org.jlleitschuh.gradle.ktlint")
         apply(plugin = "io.gitlab.arturbosch.detekt")
+        // dependency-analysis must be applied to the SUBPROJECTS it analyzes, not
+        // just the root (the root only hosts the aggregating `buildHealth` task).
+        // In v2+ a root-only application is flagged as a likely misconfiguration —
+        // "No project health reports found" — so scope it here to the published
+        // library modules, alongside the lint plugins, and `mise run
+        // dependencies:analyze` gets real per-module advice.
+        apply(plugin = "com.autonomousapps.dependency-analysis")
     }
 
     plugins.withId("org.jlleitschuh.gradle.ktlint") {
