@@ -132,8 +132,8 @@ run = "./gradlew :wake:assembleAndroidMain"
 description = "Compile + jar the JVM desktop target."
 run = "./gradlew :wake:jvmJar"
 
-[tasks.xcframework]
-description = "Alias for `build` — produces the release WakeKit.xcframework."
+[tasks."build:xcframework"]
+description = "Alias for `build` — produces the release WakeKit.xcframework (all slices)."
 depends = ["build"]
 
 # --- iteration helpers -----------------------------------------------------
