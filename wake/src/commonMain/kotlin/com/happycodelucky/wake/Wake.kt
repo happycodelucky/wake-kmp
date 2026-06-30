@@ -93,7 +93,12 @@ public sealed interface WakeResult {
  *
  * The platform UDP send is selected automatically:
  *
- * - **Apple (iOS / iPadOS / macOS):** POSIX UDP broadcast sockets.
+ * - **Apple (iOS / macOS):** POSIX UDP broadcast sockets. On iOS the consuming
+ *   app must declare `NSLocalNetworkUsageDescription` in its Info.plist — the
+ *   first broadcast send triggers the Local Network privacy prompt, and without
+ *   the string iOS silently drops the packet (macOS does not prompt). If
+ *   broadcasts still don't leave the device, the app may additionally need the
+ *   `com.apple.developer.networking.multicast` entitlement.
  * - **Android:** `java.net.DatagramSocket`. Requires the
  *   `android.permission.INTERNET` permission, which the library declares in
  *   its own manifest so it merges into the consuming app.
@@ -133,7 +138,9 @@ public object Wake {
      * boundary.
      *
      * The send is fire-and-forget: [WakeResult.Success] means the datagram was
-     * handed to the OS, not that the target received it or powered on.
+     * handed to the OS, not that the target received it or powered on — on iOS,
+     * a missing `NSLocalNetworkUsageDescription` is one way [WakeResult.Success]
+     * can still mean nothing left the device (see [Wake]).
      *
      * @param mac the target device's hardware (MAC) address.
      * @param broadcastAddress the IPv4 broadcast target. Defaults to the

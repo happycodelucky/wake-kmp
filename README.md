@@ -62,7 +62,7 @@ never by throwing.
 
 | Target | Implementation |
 |---|---|
-| iOS / macOS (`iosArm64`, `iosSimulatorArm64`, `macosArm64`) | POSIX UDP sockets (`socket` / `setsockopt(SO_BROADCAST)` / `sendto`) via Kotlin/Native cinterop |
+| iOS / macOS (`iosArm64`, `iosSimulatorArm64`, `macosArm64`) | POSIX UDP sockets (`socket` / `setsockopt(SO_BROADCAST)` / `sendto`) via Kotlin/Native cinterop; iOS apps must declare `NSLocalNetworkUsageDescription` |
 | Android (`arm64-v8a`, minSdk 30) | `java.net.DatagramSocket` with broadcast enabled; declares `android.permission.INTERNET` |
 | JVM (desktop, JVM 21) | `java.net.DatagramSocket` — the same `java.net` broadcaster as Android, shared via a `jvmShared` source set. No permission or manifest needed |
 
@@ -72,6 +72,15 @@ in a `jvmShared` intermediate source set); the only difference is that Android
 contributes an `INTERNET`-permission manifest entry, while a plain JVM process
 needs no permission to open a broadcast socket. Native targets are ARM-only, no
 x86 (CLAUDE.md §1). The library is headless — any UI lives in the consuming app.
+
+On iOS the first broadcast *send* triggers the Local Network privacy prompt, so
+the embedding app must supply `NSLocalNetworkUsageDescription` in its Info.plist
+— without it iOS silently drops the packet and `Wake.up` still reports
+`WakeResult.Success` (the datagram was handed to the OS, not delivered). This is
+the app's own Info.plist, not something the library can vendor — unlike Android's
+`INTERNET` permission, which merges in from the library manifest. macOS does not
+prompt. If broadcasts still don't leave the device, the app may additionally need
+the `com.apple.developer.networking.multicast` entitlement.
 
 ## Testing
 
