@@ -167,6 +167,10 @@ kotlin {
     // build the Apple slices), the plugin infers their ABI from the prior dump
     // instead of failing — so the checked-in dump stays complete. The Apple-target
     // ABI is verified on the macOS leg of CI, which can build those slices.
+    //
+    // This is the DEFAULT for published library modules. `:wake-testing` (test
+    // fakes for consumers) opts back out in its own build script — its surface
+    // is meant to flex, so it isn't worth pinning.
     @OptIn(ExperimentalAbiValidation::class)
     abiValidation {
         enabled.set(true)

@@ -83,17 +83,19 @@ description = "ktlint auto-fix, both published modules."
 run = "./gradlew :wake:ktlintFormat :wake-testing:ktlintFormat"
 
 # --- public API / ABI ------------------------------------------------------
-# The committed dumps under <module>/api/ are the reference for the public
-# surface. `api:check` runs as part of `check` (and CI) — it fails if the public
-# API changed without a deliberate `api:dump`. Review the api/ diff like code.
+# The committed dump under wake/api/ is the reference for the public surface.
+# `api:check` runs as part of `check` (and CI) — it fails if the public API
+# changed without a deliberate `api:dump`. Review the api/ diff like code.
+# Only `:wake` is pinned; `:wake-testing` opts out of ABI validation (it ships
+# test fakes whose surface is meant to flex — see wake-testing/build.gradle.kts).
 
 [tasks."api:check"]
-description = "Verify the public API/ABI matches the committed dump (also runs inside `check`)."
-run = "./gradlew :wake:checkKotlinAbi :wake-testing:checkKotlinAbi"
+description = "Verify the public API/ABI of :wake matches the committed dump (also runs inside `check`)."
+run = "./gradlew :wake:checkKotlinAbi"
 
 [tasks."api:dump"]
-description = "Regenerate the committed public API/ABI dump after an INTENTIONAL public change. Review + commit the api/ diff."
-run = "./gradlew :wake:updateKotlinAbi :wake-testing:updateKotlinAbi"
+description = "Regenerate the committed public API/ABI dump for :wake after an INTENTIONAL public change. Review + commit the api/ diff."
+run = "./gradlew :wake:updateKotlinAbi"
 
 # --- build health ----------------------------------------------------------
 

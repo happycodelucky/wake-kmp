@@ -43,8 +43,9 @@ mise run format
 
 ### Changing the public API
 
-The public surface is pinned by committed dumps under `wake/api/` and
-`wake-testing/api/`. If you intentionally change a public symbol, `check` fails
+The public surface of `:wake` is pinned by committed dumps under `wake/api/`.
+(`:wake-testing` ships test fakes and is intentionally exempt — its surface may
+flex.) If you intentionally change a public symbol in `:wake`, `check` fails
 until you regenerate and commit the dump:
 
 ```bash

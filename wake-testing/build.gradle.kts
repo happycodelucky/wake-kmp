@@ -16,12 +16,24 @@
  * sets, but we don't ship a binary framework for it.
  */
 
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
+
 plugins {
     id("wake.kmp-library")
     id("wake.publish")
 }
 
 kotlin {
+    // Opt out of the convention plugin's public-API/ABI gate for this module.
+    // `:wake-testing` ships test fakes for consumers; its surface is meant to
+    // flex with the fakes' needs, so pinning it with a committed dump (like the
+    // production `:wake` library) is friction without payoff. The convention
+    // plugin enables abiValidation by default; this override wins (last write).
+    @OptIn(ExperimentalAbiValidation::class)
+    abiValidation {
+        enabled.set(false)
+    }
+
     sourceSets {
         commonMain.dependencies {
             // `api` so consumers writing `testImplementation(wake-testing)`
