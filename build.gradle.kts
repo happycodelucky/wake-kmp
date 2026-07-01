@@ -9,6 +9,12 @@
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform) apply false
+    // kotlin.jvm is applied by the :apps:cli sample only. Declared here (apply
+    // false) so its version is pinned once from the catalog and the leaf module
+    // can apply it without re-resolving — applying `kotlin.jvm` with a version in
+    // a build that already has the Kotlin Gradle plugin on the classpath (via
+    // kotlin.multiplatform) otherwise fails the version-compatibility check.
+    alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.android.kotlin.multiplatform.library) apply false
     alias(libs.plugins.skie) apply false
     alias(libs.plugins.kmmbridge.github) apply false

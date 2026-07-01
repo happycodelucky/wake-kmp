@@ -89,6 +89,10 @@ vanniktech-maven-publish-gradle-plugin = { module = "com.vanniktech:gradle-maven
 [plugins]
 
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+# kotlin-jvm — applied by the sample :apps:cli module only (a plain JVM app, not
+# a published KMP library). Same `kotlin` version as the multiplatform plugin
+# (same Kotlin Gradle artifact), so the two can never diverge.
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 skie = { id = "co.touchlab.skie", version.ref = "skie" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }

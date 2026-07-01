@@ -10,6 +10,40 @@ abstract interface com.happycodelucky.wake/WakeSender { // com.happycodelucky.wa
     abstract suspend fun up(kotlin/String, kotlin/String = ..., kotlin/Int = ...): com.happycodelucky.wake/WakeResult // com.happycodelucky.wake/WakeSender.up|up(kotlin.String;kotlin.String;kotlin.Int){}[0]
 }
 
+sealed interface com.happycodelucky.wake/MacLookupResult { // com.happycodelucky.wake/MacLookupResult|null[0]
+    final class Error : com.happycodelucky.wake/MacLookupResult { // com.happycodelucky.wake/MacLookupResult.Error|null[0]
+        constructor <init>(kotlin/String) // com.happycodelucky.wake/MacLookupResult.Error.<init>|<init>(kotlin.String){}[0]
+
+        final val message // com.happycodelucky.wake/MacLookupResult.Error.message|{}message[0]
+            final fun <get-message>(): kotlin/String // com.happycodelucky.wake/MacLookupResult.Error.message.<get-message>|<get-message>(){}[0]
+
+        final fun component1(): kotlin/String // com.happycodelucky.wake/MacLookupResult.Error.component1|component1(){}[0]
+        final fun copy(kotlin/String = ...): com.happycodelucky.wake/MacLookupResult.Error // com.happycodelucky.wake/MacLookupResult.Error.copy|copy(kotlin.String){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.happycodelucky.wake/MacLookupResult.Error.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.happycodelucky.wake/MacLookupResult.Error.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.happycodelucky.wake/MacLookupResult.Error.toString|toString(){}[0]
+    }
+
+    final class Found : com.happycodelucky.wake/MacLookupResult { // com.happycodelucky.wake/MacLookupResult.Found|null[0]
+        constructor <init>(kotlin/String) // com.happycodelucky.wake/MacLookupResult.Found.<init>|<init>(kotlin.String){}[0]
+
+        final val macAddress // com.happycodelucky.wake/MacLookupResult.Found.macAddress|{}macAddress[0]
+            final fun <get-macAddress>(): kotlin/String // com.happycodelucky.wake/MacLookupResult.Found.macAddress.<get-macAddress>|<get-macAddress>(){}[0]
+
+        final fun component1(): kotlin/String // com.happycodelucky.wake/MacLookupResult.Found.component1|component1(){}[0]
+        final fun copy(kotlin/String = ...): com.happycodelucky.wake/MacLookupResult.Found // com.happycodelucky.wake/MacLookupResult.Found.copy|copy(kotlin.String){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.happycodelucky.wake/MacLookupResult.Found.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.happycodelucky.wake/MacLookupResult.Found.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.happycodelucky.wake/MacLookupResult.Found.toString|toString(){}[0]
+    }
+
+    final object NotInCache : com.happycodelucky.wake/MacLookupResult { // com.happycodelucky.wake/MacLookupResult.NotInCache|null[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.happycodelucky.wake/MacLookupResult.NotInCache.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.happycodelucky.wake/MacLookupResult.NotInCache.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.happycodelucky.wake/MacLookupResult.NotInCache.toString|toString(){}[0]
+    }
+}
+
 sealed interface com.happycodelucky.wake/WakeResult { // com.happycodelucky.wake/WakeResult|null[0]
     final class InvalidMacAddress : com.happycodelucky.wake/WakeResult { // com.happycodelucky.wake/WakeResult.InvalidMacAddress|null[0]
         constructor <init>(kotlin/String) // com.happycodelucky.wake/WakeResult.InvalidMacAddress.<init>|<init>(kotlin.String){}[0]
@@ -54,3 +88,6 @@ final const val com.happycodelucky.wake/DEFAULT_WAKE_PORT // com.happycodelucky.
     final fun <get-DEFAULT_WAKE_PORT>(): kotlin/Int // com.happycodelucky.wake/DEFAULT_WAKE_PORT.<get-DEFAULT_WAKE_PORT>|<get-DEFAULT_WAKE_PORT>(){}[0]
 
 final fun (com.happycodelucky.wake/Wake).com.happycodelucky.wake/asSender(): com.happycodelucky.wake/WakeSender // com.happycodelucky.wake/asSender|asSender@com.happycodelucky.wake.Wake(){}[0]
+
+// Targets: [macosArm64]
+final suspend fun com.happycodelucky.wake/lookupMac(kotlin/String): com.happycodelucky.wake/MacLookupResult // com.happycodelucky.wake/lookupMac|lookupMac(kotlin.String){}[0]

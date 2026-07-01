@@ -5,6 +5,13 @@ package com.happycodelucky.wake.internal
 
 import kotlin.jvm.JvmInline
 
+private const val HEX_RADIX = 16
+private const val HEX_DIGITS_PER_OCTET = 2
+
+// Low-byte mask, named (not a raw 0xFF) to stay clear of detekt's MagicNumber —
+// mirrors the convention in Ipv4.kt.
+private const val BYTE_MASK = 0xFF
+
 /**
  * A validated 48-bit hardware (MAC) address.
  *
@@ -24,5 +31,31 @@ internal value class MacAddress private constructor(
             require(bytes.size == MAC_LENGTH) { "MAC must be $MAC_LENGTH bytes, was ${bytes.size}" }
             return MacAddress(bytes)
         }
+    }
+}
+
+/**
+ * Format [bytes] as an uppercase, colon-separated MAC string — e.g.
+ * `AA:BB:CC:DD:EE:FF`.
+ *
+ * The inverse of [parseMacBytes]: each byte becomes two zero-padded uppercase hex
+ * digits joined by `:`. Used by the ARP-cache lookup to render a resolved
+ * hardware address as the canonical text form the public API exposes (and that
+ * [com.happycodelucky.wake.Wake.up] accepts back), so a lookup result feeds
+ * straight into a wake. Pure and platform-agnostic — unit-tested from commonTest.
+ *
+ * @param bytes exactly [MAC_LENGTH] bytes, big-endian wire order.
+ * @return the canonical uppercase colon-separated MAC string.
+ * @throws IllegalArgumentException if [bytes] is not exactly [MAC_LENGTH] long.
+ *   An internal invariant: resolvers hand back a fixed-width address, so a
+ *   violation is a programming error, not user input.
+ */
+internal fun formatMac(bytes: ByteArray): String {
+    require(bytes.size == MAC_LENGTH) { "MAC must be $MAC_LENGTH bytes, was ${bytes.size}" }
+    return bytes.joinToString(separator = ":") { byte ->
+        (byte.toInt() and BYTE_MASK)
+            .toString(HEX_RADIX)
+            .uppercase()
+            .padStart(HEX_DIGITS_PER_OCTET, '0')
     }
 }

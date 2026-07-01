@@ -1,0 +1,101 @@
+package = com.happycodelucky.wake.cinterop.arp
+language = C
+
+# Wake — macOS ARP-cache reader (the repo's first custom cinterop).
+#
+# Reads the live ARP cache via the BSD routing-socket sysctl MIB that `arp -a`
+# itself uses: {CTL_NET, PF_ROUTE, 0, AF_INET, NET_RT_FLAGS, RTF_LLINFO}. The
+# whole table walk is done in this inline C shim — not from Kotlin — because the
+# entries are variable-length sockaddrs that must be advanced by their padded
+# size (SA_SIZE), which is fiddly to do correctly across the cinterop boundary.
+#
+# Scoped to macosArm64 only (wired in wake/build.gradle.kts); the iOS targets
+# never see this .def — on iOS the kernel returns a spoofed MAC, so iOS has no
+# lookup entry point at all.
+#
+# Headers/macros verified present in the macOS SDK: sockaddr_inarp
+# (netinet/if_ether.h), sockaddr_dl + LLADDR (net/if_dl.h), rt_msghdr
+# (net/route.h). SA_SIZE is NOT in the SDK, so it is defined here (the standard
+# BSD alignment to the next sizeof(uint32_t) boundary, matching usr.sbin/arp).
+
+---
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/route.h>
+#include <netinet/in.h>
+#include <netinet/if_ether.h>
+#include <string.h>
+#include <errno.h>
+#include <stdlib.h>
+
+// Size of a sockaddr rounded up to the next 4-byte boundary, as the kernel lays
+// them out in a routing message. A zero-length sockaddr still occupies 4 bytes.
+// Matches the SA_SIZE / ROUNDUP macro in BSD usr.sbin/arp/arp.c.
+#define WAKE_SA_SIZE(sa) \
+    ( ((sa)->sa_len == 0) ? sizeof(uint32_t) \
+      : (1 + (((sa)->sa_len - 1) | (sizeof(uint32_t) - 1))) )
+
+#define WAKE_MAC_LEN 6
+
+// Look up the 6-byte MAC for an IPv4 address (network byte order, as in
+// sockaddr_in.sin_addr.s_addr) in the live ARP cache.
+//
+// Returns:
+//    0  -> found; out[0..5] filled with the hardware address.
+//    1  -> no matching complete entry in the cache.
+//  < 0  -> error; the value is -errno.
+//
+// The caller must provide room for WAKE_MAC_LEN (6) bytes in out.
+static int wake_arp_lookup(unsigned int ipv4_net_order, unsigned char *out) {
+    int mib[6];
+    mib[0] = CTL_NET;
+    mib[1] = PF_ROUTE;
+    mib[2] = 0;
+    mib[3] = AF_INET;
+    mib[4] = NET_RT_FLAGS;
+    mib[5] = RTF_LLINFO;
+
+    size_t needed = 0;
+    if (sysctl(mib, 6, NULL, &needed, NULL, 0) < 0) {
+        return -errno;
+    }
+    if (needed == 0) {
+        return 1; // empty table -> not found
+    }
+
+    char *buf = (char *)malloc(needed);
+    if (buf == NULL) {
+        return -ENOMEM;
+    }
+    if (sysctl(mib, 6, buf, &needed, NULL, 0) < 0) {
+        int saved = -errno;
+        free(buf);
+        return saved;
+    }
+
+    int result = 1; // default: not found
+    char *lim = buf + needed;
+    char *next = buf;
+    while (next < lim) {
+        struct rt_msghdr *rtm = (struct rt_msghdr *)next;
+        struct sockaddr_inarp *sin = (struct sockaddr_inarp *)(rtm + 1);
+        // The link-layer sockaddr immediately follows the inet sockaddr, padded
+        // to the next 4-byte boundary.
+        struct sockaddr_dl *sdl =
+            (struct sockaddr_dl *)((char *)sin + WAKE_SA_SIZE((struct sockaddr *)sin));
+
+        if (sin->sin_addr.s_addr == ipv4_net_order && sdl->sdl_alen == WAKE_MAC_LEN) {
+            memcpy(out, (unsigned char *)LLADDR(sdl), WAKE_MAC_LEN);
+            result = 0;
+            break;
+        }
+        next += rtm->rtm_msglen;
+    }
+
+    free(buf);
+    return result;
+}
