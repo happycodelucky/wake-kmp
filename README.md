@@ -16,8 +16,16 @@ target's 6-byte MAC address repeated sixteen times, sent as a UDP broadcast
 datagram (port 9 by convention). A network card listening in Wake-on-LAN mode
 powers its host on when it sees that pattern addressed to its own MAC.
 
-Wake-on-Wireless is the same mechanism over Wi-Fi — no different code path,
-though the target device and its access point may need WoWLAN enabled.
+Wake-on-Wireless is the same mechanism over Wi-Fi — no different code path. Be
+aware, though, that **WoL is far more reliable over Ethernet than Wi-Fi.** A
+sleeping wired NIC keeps its PHY powered to watch for the magic packet; many
+Wi-Fi chipsets instead power the *radio* down in sleep, so nothing is listening
+and no magic packet — from this library or any other — can reach the device. If a
+device won't wake on Wi-Fi, that's usually the cause, not the packet. Wiring it to
+Ethernet (and using that interface's MAC) is the dependable path; WoWLAN over
+Wi-Fi works only on the subset of devices and access points that keep the radio in
+a low-power listen mode. (Example: a Roku wakes reliably on Ethernet but typically
+not over Wi-Fi, since its radio sleeps.)
 
 ## Usage
 
@@ -57,6 +65,37 @@ static `Wake.up(mac:)` onto SKIE's `Wake.shared.up(...)`. The Swift form is
 `try await` because SKIE renders the bridged suspend call as `async throws`
 (carrying task cancellation); `up` itself reports failures through `WakeResult`,
 never by throwing.
+
+### Looking up a MAC from an IP (macOS + JVM desktop only)
+
+You often know a device's *IP* but Wake-on-LAN needs its *MAC*. `lookupMac(ip)`
+reads the host's ARP cache to resolve one — capture the MAC while the device is
+awake, then wake it by MAC later (ARP entries age out once a host goes idle).
+
+```kotlin
+when (val result = lookupMac("192.168.1.42")) {
+    is MacLookupResult.Found -> Wake.up(result.macAddress)   // feeds straight into up()
+    is MacLookupResult.NotInCache -> println("no ARP entry — ping it first")
+    is MacLookupResult.Error -> println("lookup failed: ${result.message}")
+}
+```
+
+```swift
+// SKIE renders it as a global async function (not a Wake member):
+switch try await lookupMac(ip: "192.168.1.42") {
+case let .found(macAddress): _ = try await Wake.up(mac: macAddress)
+case .notInCache: print("no ARP entry — ping it first")
+case let .error(message): print("lookup failed: \(message)")
+}
+```
+
+**This is intentionally *not* a cross-platform API.** Reading the ARP cache is
+impossible on iOS (the kernel returns a spoofed address to sandboxed apps since
+iOS 10.2) and on modern Android (`/proc/net/arp` is SELinux-blocked from API 29,
+with no replacement). So `lookupMac` is declared **only** on the macOS and JVM
+desktop targets — calling it from iOS or Android is a *compile error*, never a
+fake result. The companion sample CLI (`mise run cli -- --ip 192.168.1.42`) uses
+it for its "wake by IP" path.
 
 ## Platforms
 
@@ -104,12 +143,35 @@ assertEquals("AA:BB:CC:DD:EE:FF", fake.lastCall?.mac)
 Code that doesn't need a test seam can ignore `WakeSender` and call `Wake.up(...)`
 directly.
 
+## Sample CLI
+
+`:apps:cli` is a small JVM command-line tool that wakes a device by MAC or by IP
+(IP → ARP-resolve → wake). It's a sample, not a published artifact — a plain
+`kotlin("jvm")` app depending on `:wake`.
+
+```bash
+mise run cli -- AA:BB:CC:DD:EE:FF        # wake by MAC
+mise run cli -- <wifi-mac> <eth-mac>     # wake several MACs (one packet each)
+mise run cli -- --ip 192.168.1.42        # resolve the IP's MAC, then wake it
+mise run cli -- --ip 192.168.1.42 --port 7 --broadcast 192.168.1.255
+./gradlew :apps:cli:run --args="--help"  # full usage (--help via the raw form)
+```
+
+"Wake by IP" relies on `lookupMac`, so it works on a Linux or macOS desktop but
+not, say, inside a container with no `arp`/`/proc/net/arp`.
+
+Passing several MACs sends a packet to each. Some devices listen on more than one
+interface — a Roku in deep sleep, for instance, has separate Wi-Fi and Ethernet
+MACs (visible under **Settings → Network → About** on the device), and you have
+to wake the interface it's actually on. Listing both is the reliable move.
+
 ## Build
 
 ```bash
 mise install        # provision JDK, Gradle, gh
 mise run check      # ktlint + detekt + all unit tests (all targets, both modules)
 mise run build      # assemble the release WakeKit.xcframework
+mise run cli -- …   # run the sample CLI (see above)
 ```
 
 See [`mise.toml`](mise.toml) for the full task surface and [`CLAUDE.md`](CLAUDE.md)

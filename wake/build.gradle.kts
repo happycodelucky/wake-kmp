@@ -62,6 +62,28 @@ kotlin {
             implementation(project(":wake-testing"))
         }
     }
+
+    // --- ARP cinterop: macOS desktop ONLY (CLAUDE.md §5 step 3) --------------
+    // The macOS ARP-cache reader walks the BSD routing table via a custom C
+    // shim (src/nativeInterop/cinterop/arp.def). It is wired ONLY onto
+    // macosArm64: iOS can compile the same sysctl walk but the kernel returns a
+    // spoofed MAC there, so iOS has no `lookupMac` and must not link this
+    // interop. Scoping it to the macOS target keeps the ARP C code out of every
+    // iOS framework slice.
+    //
+    // This lives here, in :wake's own script, NOT in the shared
+    // `wake.kmp-library` convention plugin — that plugin is also applied to
+    // :wake-testing, which has no arp.def. Per the plugin's own header, modules
+    // keep only what genuinely differs; this is exactly such a case.
+    //
+    // Re-opening macosArm64 { } is additive/idempotent with the convention
+    // plugin's `macosArm64()` declaration.
+    macosArm64 {
+        compilations.getByName("main").cinterops.create("arp") {
+            definitionFile.set(layout.projectDirectory.file("src/nativeInterop/cinterop/arp.def"))
+            packageName("com.happycodelucky.wake.cinterop.arp")
+        }
+    }
 }
 
 skie {

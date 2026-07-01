@@ -1,3 +1,39 @@
+public final class com/happycodelucky/wake/LookupMac_jvmKt {
+	public static final fun lookupMac (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class com/happycodelucky/wake/MacLookupResult {
+}
+
+public final class com/happycodelucky/wake/MacLookupResult$Error : com/happycodelucky/wake/MacLookupResult {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/happycodelucky/wake/MacLookupResult$Error;
+	public static synthetic fun copy$default (Lcom/happycodelucky/wake/MacLookupResult$Error;Ljava/lang/String;ILjava/lang/Object;)Lcom/happycodelucky/wake/MacLookupResult$Error;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMessage ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/happycodelucky/wake/MacLookupResult$Found : com/happycodelucky/wake/MacLookupResult {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/happycodelucky/wake/MacLookupResult$Found;
+	public static synthetic fun copy$default (Lcom/happycodelucky/wake/MacLookupResult$Found;Ljava/lang/String;ILjava/lang/Object;)Lcom/happycodelucky/wake/MacLookupResult$Found;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMacAddress ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/happycodelucky/wake/MacLookupResult$NotInCache : com/happycodelucky/wake/MacLookupResult {
+	public static final field INSTANCE Lcom/happycodelucky/wake/MacLookupResult$NotInCache;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class com/happycodelucky/wake/Wake {
 	public static final field INSTANCE Lcom/happycodelucky/wake/Wake;
 	public final fun up (Ljava/lang/String;Ljava/lang/String;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;

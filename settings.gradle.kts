@@ -55,7 +55,17 @@ include(":wake")
 include(":wake-testing")
 
 // --- Sample apps (CLAUDE.md §4) -----------------------------------------------
-// Sample apps (apps/ios, apps/macos, apps/android) are deferred for the initial
-// scaffold; when added, the Android sample becomes a `:androidApp` Gradle
-// subproject and the Apple samples consume the shared module via SPM (not
-// Gradle). See the deferred-work notes in README / CLAUDE.md.
+// :apps:cli — a JVM-only sample command-line tool that wakes a device by MAC
+// (direct) or by IP (ARP-resolve the IP → MAC, then send the magic packet).
+// Hand-rolled arg parsing, zero deps beyond `:wake` + coroutines. Sample-grade:
+// it applies `kotlin("jvm")` (NOT the `wake.kmp-library` convention plugin), so
+// it ships no framework/AAR/SKIE/Maven artifact and is excluded from the
+// ktlint/detekt/ABI hooks (those key on the multiplatform plugin — see the
+// `subprojects {}` block in build.gradle.kts). Gradle derives the project
+// directory `apps/cli` from the `:apps:cli` path.
+include(":apps:cli")
+
+// The native sample apps (apps/ios, apps/macos, apps/android) remain deferred;
+// when added, the Android sample becomes a `:androidApp` Gradle subproject and
+// the Apple samples consume the shared module via SPM (not Gradle). See the
+// deferred-work notes in README / CLAUDE.md.

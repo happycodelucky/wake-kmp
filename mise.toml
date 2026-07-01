@@ -107,6 +107,23 @@ run = "./gradlew buildHealth"
 description = "Surface Gradle Doctor build-health diagnostics (slow config, cache misuse, JVM mismatches)."
 run = "./gradlew assemble --dry-run"
 
+# --- cli (sample app) ------------------------------------------------------
+# :apps:cli is a JVM-only sample, outside the published-library check gate. Run
+# it locally; pass CLI args after `--`. The `application` plugin's `run` task
+# takes the program args via --args.
+
+# NOTE: `mise run cli -- --help` is intercepted by mise's own --help flag; use
+# the raw form `./gradlew :apps:cli:run --args="--help"` to see the CLI's usage.
+# Positional and other flags forward fine: `mise run cli -- AA:BB:CC:DD:EE:FF`,
+# `mise run cli -- --ip 192.168.1.42 --port 7`.
+[tasks.cli]
+description = "Run the sample CLI. Pass args after `--`, e.g. `mise run cli -- AA:BB:CC:DD:EE:FF` or `mise run cli -- --ip 192.168.1.42`. (For --help, use ./gradlew :apps:cli:run --args=\"--help\".)"
+run = './gradlew --quiet --console=plain :apps:cli:run --args="{{arg(name="cliargs", var=true)}}"'
+
+[tasks."test:cli"]
+description = "Run the CLI arg-parser unit tests."
+run = "./gradlew :apps:cli:test"
+
 # --- build -----------------------------------------------------------------
 
 [tasks.build]
