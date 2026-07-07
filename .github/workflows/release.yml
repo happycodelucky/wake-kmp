@@ -77,15 +77,17 @@ jobs:
   release:
     runs-on: macos-latest
 
-    # The four MAVEN_CENTRAL_* secrets are GitHub **repository** secrets
-    # (Repo → Settings → Secrets and variables → Actions). Repository secrets
-    # resolve directly in `secrets.MAVEN_CENTRAL_*` with no `environment:`
-    # binding. If `secrets.MAVEN_CENTRAL_*` ever resolves to an empty string at
-    # runtime, the cause is almost always a missing or mis-named secret —
-    # vanniktech then fails with cryptic auth / signing errors that look like a
-    # downstream credentials problem. (The `ORG_GRADLE_PROJECT_` prefix on the
-    # env vars below is unrelated — that's Gradle's env-var → project-property
-    # mapping, not a GitHub org.)
+    # The four MAVEN_CENTRAL_* secrets live in the `continuous-deployment`
+    # GitHub *environment* (Repo → Settings → Environments), not as bare
+    # repository secrets. Environment secrets are only injected into a job
+    # that declares this `environment:` key — without it, `secrets.MAVEN_CENTRAL_*`
+    # silently resolves to an empty string at runtime (no error at the
+    # `${{ secrets.* }}` reference itself), and vanniktech's signing step
+    # then fails downstream with a cryptic "Could not read PGP secret key"
+    # that looks like a malformed key rather than a missing one. (The
+    # `ORG_GRADLE_PROJECT_` prefix on the env vars below is unrelated —
+    # that's Gradle's env-var → project-property mapping, not a GitHub org.)
+    environment: continuous-deployment
 
     steps:
       - name: Check out repository
