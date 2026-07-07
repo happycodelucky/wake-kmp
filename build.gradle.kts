@@ -12,6 +12,12 @@ plugins {
     alias(libs.plugins.android.kotlin.multiplatform.library) apply false
     alias(libs.plugins.skie) apply false
     alias(libs.plugins.kmmbridge.github) apply false
+    // vanniktech maven-publish — declared here `apply false` so its shared
+    // MavenCentralBuildService loads once into the root classloader scope. Both
+    // :wake and :wake-testing apply it via `wake.publish`; without this each
+    // loads its own copy and `prepareMavenCentralPublishing` fails to type-check
+    // the cross-project build-service under parallel + configuration-cache.
+    alias(libs.plugins.maven.publish) apply false
     alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.detekt) apply false
 
