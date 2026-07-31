@@ -50,14 +50,18 @@ not a native slice — it is the one architecture-neutral target we ship.)
 Use the **latest stable**. Never EAP, RC, or beta on `main`. All versions live
 in `gradle/libs.versions.toml`.
 
-Floors as of last edit:
+Constraints that outlive any particular version:
 
-- Kotlin 2.3.21 (bounded above by SKIE's supported range — do not bump past it)
-- Gradle 9.x
-- AGP 9.x with `com.android.kotlin.multiplatform.library` (use the new `android`
-  block, not `androidTarget`)
-- JVM target 21
-- Latest stable Xcode that the current Kotlin release supports
+- **Kotlin is bounded above by SKIE's supported range** — do not bump past it;
+  bump SKIE first, and only once its changelog names the target Kotlin version.
+- AGP uses `com.android.kotlin.multiplatform.library` (the new `android` block,
+  not `androidTarget`).
+- JVM target 21.
+- Latest stable Xcode that the current Kotlin release supports.
+
+The actual pinned numbers are deliberately NOT restated here — read them from
+`gradle/libs.versions.toml`, which is the single source of truth. A version
+quoted in prose is a second source of truth that drifts silently.
 
 **Before adding or bumping any dependency: web-search the latest stable
 version.** Versions in your training data are stale. Don't guess.
