@@ -19,7 +19,7 @@
 
 [tools]
 java   = "temurin-21.0.11+10.0.LTS"   # CLAUDE.md §2 — JDK 21 LTS, Apple Silicon aarch64.
-gradle = "9.5.1"                       # Matches gradle/wrapper/gradle-wrapper.properties.
+gradle = "9.6.1"                       # Matches gradle/wrapper/gradle-wrapper.properties.
 gh     = "2.94.0"                       # release.yml (deferred) uses `gh release create`.
 
 # Deliberately NOT pinned here:
@@ -105,7 +105,16 @@ run = "./gradlew buildHealth"
 
 [tasks."build:doctor"]
 description = "Surface Gradle Doctor build-health diagnostics (slow config, cache misuse, JVM mismatches)."
-run = "./gradlew assemble --dry-run"
+# A REAL build, not `--dry-run`. Gradle Doctor observes the build as it runs —
+# task execution time, cache hit/miss, download throughput, daemon and JVM
+# state — and prints its "Prescriptions" banner at the end. `--dry-run` executes
+# nothing, so Doctor has nothing to measure and the task silently reported
+# nothing while looking like it had checked.
+#
+# Corollary: Doctor can only diagnose work that actually happened. On a fully
+# up-to-date tree there's little to see — run it after a `mise run clean`, or
+# right after a change that forces recompilation, when a build feels slow.
+run = "./gradlew assemble"
 
 # --- cli (sample app) ------------------------------------------------------
 # :apps:cli is a JVM-only sample, outside the published-library check gate. Run

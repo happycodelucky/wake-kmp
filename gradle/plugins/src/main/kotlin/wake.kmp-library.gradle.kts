@@ -53,6 +53,12 @@ val frameworkBaseName =
 // framework name.
 val moduleNamespace = "com.happycodelucky." + name.replace("-", ".")
 
+// Modules exempt from the public-API/ABI gate. Since Kotlin 2.4 the only way to
+// opt a module out is for this plugin to skip the `abiValidation` block
+// entirely (the `enabled` property was removed), so the exemption has to be
+// listed here rather than declared by the module itself.
+val modulesWithoutAbiValidation = setOf("wake-testing")
+
 kotlin {
     // CLAUDE.md §4: applyDefaultHierarchyTemplate. Don't hand-roll source set
     // wiring. iosMain + macosMain coalesce into a shared "appleMain"
@@ -138,8 +144,8 @@ kotlin {
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     compilerOptions {
         // K2 stable APIs only (CLAUDE.md §3).
-        languageVersion.set(KotlinVersion.KOTLIN_2_3)
-        apiVersion.set(KotlinVersion.KOTLIN_2_3)
+        languageVersion.set(KotlinVersion.KOTLIN_2_4)
+        apiVersion.set(KotlinVersion.KOTLIN_2_4)
         allWarningsAsErrors.set(true)
     }
 
@@ -169,11 +175,18 @@ kotlin {
     // ABI is verified on the macOS leg of CI, which can build those slices.
     //
     // This is the DEFAULT for published library modules. `:wake-testing` (test
-    // fakes for consumers) opts back out in its own build script — its surface
-    // is meant to flex, so it isn't worth pinning.
-    @OptIn(ExperimentalAbiValidation::class)
-    abiValidation {
-        enabled.set(true)
+    // fakes for consumers) opts out — its surface is meant to flex, so it isn't
+    // worth pinning.
+    //
+    // Kotlin 2.4 REMOVED the `enabled` property. The PRESENCE of the
+    // abiValidation block is now what turns validation on, so there is no
+    // per-module `enabled.set(false)` override any more — a module opts out by
+    // this plugin not calling the block at all. That's why the opt-out list
+    // lives here rather than in `:wake-testing`'s own build script, where it
+    // used to be; see that file for the reasoning behind the exemption.
+    if (name !in modulesWithoutAbiValidation) {
+        @OptIn(ExperimentalAbiValidation::class)
+        abiValidation { }
     }
 }
 
