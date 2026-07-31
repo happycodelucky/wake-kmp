@@ -41,8 +41,8 @@ versionCatalogUpdate = "1.1.0"
 # transitive deps you rely on directly. Run via `mise run dependencies:analyze`.
 # gradle-doctor: build-health warnings (slow config, JVM mismatches, cache
 # misses). Both verified latest stable on the Gradle Plugin Portal 2026-06-29.
-dependencyAnalysis = "3.16.0"
-gradleDoctor = "0.12.0"
+dependencyAnalysis = "3.18.0"
+gradleDoctor = "0.12.1"
 
 # --- Android SDK ------------------------------------------------------------
 android-compile-sdk = "36"
