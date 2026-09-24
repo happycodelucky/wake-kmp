@@ -29,12 +29,13 @@ dokka = "2.2.0"                # Kotlin API doc generator; Dokka v2 task layout.
 mavenPublish = "0.36.0"
 
 # --- Dependency management (mise dependencies:outdated / dependencies:update) -
-# ben-manes reports available updates; version-catalog-update consumes that
-# report to rewrite THIS file in place. version-catalog-update REQUIRES the
-# ben-manes plugin to be applied (it reads its dependencyUpdates task output).
-# Verified latest stable on the Gradle Plugin Portal 2026-06-29.
-benManesVersions = "0.54.0"
-versionCatalogUpdate = "1.1.0"
+# ben-manes (`dependencyUpdates`) REPORTS available updates;
+# version-catalog-update (`versionCatalogUpdate`) REWRITES this file in place.
+# They are independent: VCU >= 1.0 resolves versions itself and does not read
+# ben-manes' output. Both are configured stable-only in the root build script.
+# Verified latest stable on the Gradle Plugin Portal 2026-09-23.
+benManesVersions = "0.64.0"
+versionCatalogUpdate = "1.1.1"
 
 # --- Build health / dependency hygiene --------------------------------------
 # dependency-analysis: flags unused deps, api-vs-implementation misuse, and
@@ -46,8 +47,10 @@ gradleDoctor = "0.12.0"
 
 # --- Android SDK ------------------------------------------------------------
 android-compile-sdk = "36"
-android-min-sdk = "30"         # arm64-v8a only (CLAUDE.md §1).
-jvm-target = "21"              # CLAUDE.md §2.
+# arm64-v8a only (CLAUDE.md §1).
+android-min-sdk = "30"
+# CLAUDE.md §2.
+jvm-target = "21"
 
 # --- Apple deployment targets ----------------------------------------------
 ios-deployment-target = "18.0"
@@ -58,8 +61,10 @@ kotlinx-coroutines = "1.11.0"
 kotlinx-atomicfu = "0.33.0"
 
 # --- Lint ------------------------------------------------------------------
-ktlint = "1.8.0"               # The ktlint tool itself.
-ktlintGradle = "14.2.0"        # The org.jlleitschuh.gradle.ktlint Gradle plugin.
+# The ktlint tool itself.
+ktlint = "1.8.0"
+# The org.jlleitschuh.gradle.ktlint Gradle plugin.
+ktlintGradle = "14.2.0"
 # detekt 1.23.8 is the latest stable; the 2.x line is alpha-only as of
 # June 2026 and CLAUDE.md §2 bans pre-stable on main.
 detekt = "1.23.8"
@@ -112,7 +117,7 @@ kmmbridge-github = { id = "co.touchlab.kmmbridge.github", version.ref = "kmmbrid
 # wake/build.gradle.kts for the configuration.
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
 # Dependency-update tooling (mise dependencies:outdated / dependencies:update).
-ben-manes-versions = { id = "com.github.ben-manes.versions", version.ref = "benManesVersions" }
+ben-manes-versions = { id = "io.github.ben-manes.versions", version.ref = "benManesVersions" }
 version-catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "versionCatalogUpdate" }
 # Build-health tooling (mise dependencies:analyze / build:doctor).
 dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependencyAnalysis" }

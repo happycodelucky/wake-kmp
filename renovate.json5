@@ -2,8 +2,8 @@
 //
 // Automates the "use the latest stable, web-search before bumping" policy
 // (see CLAUDE.md §2 / §10): Renovate opens a PR when a dependency in
-// gradle/libs.versions.toml (or a GitHub Action) has a newer stable
-// release, and CI's full check gates the merge.
+// gradle/libs.versions.toml (or a GitHub Action, or a mise tool) has a newer
+// stable release, and CI's full check gates the merge.
 {
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
   extends: [
@@ -18,20 +18,30 @@
       ignoreUnstable: true,
     },
     {
-      // Kotlin is bounded above by SKIE's supported range ("if SKIE doesn't
-      // yet support a Kotlin version, we wait"). A Kotlin bump must be a
-      // deliberate, human-paired change with the SKIE pin — Renovate must
-      // not propose it on its own. The prefix also covers the
-      // kotlin-serialization plugin, which versions in lockstep with Kotlin.
-      matchPackagePrefixes: ['org.jetbrains.kotlin'],
+      // Kotlin is bounded above by SKIE's supported range ("don't bump Kotlin
+      // past SKIE's supported range", CLAUDE.md §8). A Kotlin bump must be a
+      // deliberate, human-paired change with the SKIE pin — Renovate must not
+      // propose it on its own. The boundary regex matches the Kotlin Gradle
+      // plugins (`org.jetbrains.kotlin.multiplatform`, `…kotlin.jvm`) and
+      // artifacts (`org.jetbrains.kotlin:kotlin-gradle-plugin`) but NOT
+      // `org.jetbrains.kotlinx:*` — a bare `org.jetbrains.kotlin` prefix also
+      // swallowed kotlinx.coroutines / atomicfu and silently froze them.
+      matchPackageNames: ['/^org\\.jetbrains\\.kotlin([.:]|$)/'],
       enabled: false,
       description: 'Kotlin pin is SKIE-bound; bump manually together with the skie version.',
     },
     {
       // SKIE bumps are welcome — they're what eventually unlocks a Kotlin
       // bump. Label them so the paired manual Kotlin review is prompted.
-      matchPackagePrefixes: ['co.touchlab.skie'],
+      matchPackageNames: ['co.touchlab.skie{/,}**'],
       labels: ['skie', 'check-kotlin-pin'],
+    },
+    {
+      // The Gradle launcher pinned in mise.toml and the wrapper must move
+      // together (mise.toml: "Matches gradle/wrapper/gradle-wrapper.properties").
+      matchDepNames: ['gradle'],
+      matchManagers: ['mise', 'gradle-wrapper'],
+      groupName: 'Gradle',
     },
   ],
 }
