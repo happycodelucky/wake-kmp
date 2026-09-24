@@ -103,18 +103,17 @@ run = "./gradlew :wake:updateKotlinAbi"
 description = "Dependency hygiene: unused deps, api-vs-implementation misuse, undeclared transitives (dependency-analysis)."
 run = "./gradlew buildHealth"
 
-[tasks."build:doctor"]
-description = "Surface Gradle Doctor build-health diagnostics (slow config, cache misuse, JVM mismatches)."
-# A REAL build, not `--dry-run`. Gradle Doctor observes the build as it runs —
-# task execution time, cache hit/miss, download throughput, daemon and JVM
-# state — and prints its "Prescriptions" banner at the end. `--dry-run` executes
-# nothing, so Doctor has nothing to measure and the task silently reported
-# nothing while looking like it had checked.
+[tasks."build:profile"]
+description = "Profile a real build — per-task timings, configuration time, dependency resolution (local HTML report)."
+# `--profile` writes build/reports/profile/profile-<timestamp>.html. It stays
+# LOCAL — unlike `--scan`, nothing is uploaded to scans.gradle.com.
 #
-# Corollary: Doctor can only diagnose work that actually happened. On a fully
-# up-to-date tree there's little to see — run it after a `mise run clean`, or
-# right after a change that forces recompilation, when a build feels slow.
-run = "./gradlew assemble"
+# A REAL build, not `--dry-run`: a profile can only measure work that actually
+# happened. On a fully up-to-date tree there's little to see — run it after a
+# `mise run clean`, or right after a change that forces recompilation, when a
+# build feels slow. Deprecations and configuration-cache problems are listed
+# separately in build/reports/problems/problems-report.html on every build.
+run = "./gradlew assemble --profile"
 
 # --- cli (sample app) ------------------------------------------------------
 # :apps:cli is a JVM-only sample, outside the published-library check gate. Run
