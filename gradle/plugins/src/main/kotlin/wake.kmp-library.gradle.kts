@@ -28,6 +28,7 @@
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
@@ -49,6 +50,12 @@ val frameworkBaseName =
 // Doubles as the framework bundle id, pinned so SKIE doesn't fall back to the
 // framework name.
 val moduleNamespace = "com.happycodelucky." + name.replace("-", ".")
+
+// Modules exempt from the public-API/ABI gate. Since Kotlin 2.4 the only way to
+// opt a module out is for this plugin to skip the `abiValidation` block
+// entirely (the `enabled` property was removed), so the exemption has to be
+// listed here rather than declared by the module itself.
+val modulesWithoutAbiValidation = setOf("wake-testing")
 
 kotlin {
     // CLAUDE.md §4: applyDefaultHierarchyTemplate. Don't hand-roll source set
@@ -151,11 +158,33 @@ kotlin {
         }
     }
 
-    // Public-API / ABI validation is NOT configured here: since Kotlin 2.4 it is
-    // switched on by calling `abiValidation { }` and has no off switch, so a
-    // convention-level default could not be opted out of by `:wake-testing`.
-    // Each module that pins its public surface opts in in its own build script
-    // (currently `:wake` only) — a new published module should do the same.
+    // --- Public-API / ABI validation (CLAUDE.md §10) ------------------------
+    // The Kotlin Gradle plugin's built-in ABI validation tracks the public API
+    // surface across ALL targets (JVM + KLib/native) in one checked-in dump.
+    // `mise run api:check` (wired into `check` via `checkKotlinAbi`) fails CI if
+    // the public surface changes without an explicit `mise run api:dump` — so
+    // breaking changes to a published library, and to the Swift boundary, are
+    // always deliberate and reviewed.
+    //
+    // When the host can't compile every target (e.g. the Ubuntu CI leg can't
+    // build the Apple slices), the plugin infers their ABI from the prior dump
+    // instead of failing — so the checked-in dump stays complete. The Apple-target
+    // ABI is verified on the macOS leg of CI, which can build those slices.
+    //
+    // This is the DEFAULT for published library modules. `:wake-testing` (test
+    // fakes for consumers) opts out — its surface is meant to flex, so it isn't
+    // worth pinning.
+    //
+    // Kotlin 2.4 REMOVED the `enabled` property. The PRESENCE of the
+    // abiValidation block is now what turns validation on, so there is no
+    // per-module `enabled.set(false)` override any more — a module opts out by
+    // this plugin not calling the block at all. That's why the opt-out list
+    // lives here rather than in `:wake-testing`'s own build script, where it
+    // used to be; see that file for the reasoning behind the exemption.
+    if (name !in modulesWithoutAbiValidation) {
+        @OptIn(ExperimentalAbiValidation::class)
+        abiValidation { }
+    }
 }
 
 skie {

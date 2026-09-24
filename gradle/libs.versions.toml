@@ -25,6 +25,9 @@
 kotlin = "2.4.10"
 # com.android.kotlin.multiplatform.library variant (CLAUDE.md §2). AGP 9.4
 # requires Gradle >= 9.6.0.
+# NOTE: dependency-analysis prints "only known to work with AGP between 8.10.0
+# and 9.3.1 … proceed at your own risk" — its AGP_MAX lags the AGP release train.
+# Advisory only: buildHealth runs and reports normally on 9.4.1.
 agp = "9.4.1"
 # Supports Kotlin 2.0.0 – 2.4.10.
 skie = "0.10.14"
@@ -136,6 +139,9 @@ kmmbridge-github = { id = "co.touchlab.kmmbridge.github", version.ref = "kmmbrid
 # plugin (gradle/plugins); modules add only POM name/description.
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
 # Dependency-update tooling (mise dependencies:outdated / dependencies:update).
+# Plugin id moved to the `io.github` namespace; the old `com.github.…` id still
+# resolves but warns on every configuration. The Java package (and therefore the
+# `DependencyUpdatesTask` import in the root build script) is unchanged.
 ben-manes-versions = { id = "io.github.ben-manes.versions", version.ref = "ben-manes-versions" }
 version-catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "version-catalog-update" }
 # Build-health tooling (mise dependencies:analyze / build:doctor).

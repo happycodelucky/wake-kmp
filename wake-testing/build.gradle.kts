@@ -22,10 +22,16 @@ plugins {
 }
 
 kotlin {
-    // No `abiValidation { }` here, deliberately: `:wake-testing` ships test fakes
-    // for consumers; its surface is meant to flex with the fakes' needs, so
-    // pinning it with a committed dump (like the production `:wake` library) is
-    // friction without payoff. ABI validation is opt-in per module.
+    // This module is exempt from the convention plugin's public-API/ABI gate.
+    // `:wake-testing` ships test fakes for consumers; its surface is meant to
+    // flex with the fakes' needs, so pinning it with a committed dump (like the
+    // production `:wake` library) is friction without payoff.
+    //
+    // The opt-out USED to live here as `abiValidation { enabled.set(false) }`.
+    // Kotlin 2.4 removed that property — the presence of the block is what
+    // enables validation — so the exemption now has to be expressed by the
+    // convention plugin not calling the block for this module. See
+    // `modulesWithoutAbiValidation` in wake.kmp-library.gradle.kts.
 
     sourceSets {
         commonMain.dependencies {

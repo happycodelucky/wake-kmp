@@ -7,10 +7,8 @@
  * the `wake.kmp-library` convention plugin; Maven Central publishing comes
  * from `wake.publish` (both in /gradle/plugins). This script keeps only what
  * is unique to this module: dependencies, the KMMBridge SPM distribution
- * config, the ABI-validation opt-in, and POM name/description.
+ * config, and POM name/description.
  */
-
-import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 plugins {
     id("wake.kmp-library")
@@ -86,26 +84,6 @@ kotlin {
             packageName("com.happycodelucky.wake.cinterop.arp")
         }
     }
-
-    // --- Public-API / ABI validation (CLAUDE.md §10) ------------------------
-    // The Kotlin Gradle plugin's built-in ABI validation tracks the public API
-    // surface across ALL targets (JVM + KLib/native) in the checked-in dumps
-    // under api/. `mise run api:check` (wired into `check` via `checkKotlinAbi`)
-    // fails CI if the public surface changes without an explicit
-    // `mise run api:dump` — so breaking changes to the published library, and to
-    // the Swift boundary, are always deliberate and reviewed.
-    //
-    // When the host can't compile every target (e.g. the Ubuntu CI leg can't
-    // build the Apple slices), the plugin infers their ABI from the prior dump
-    // instead of failing — so the checked-in dump stays complete. The
-    // Apple-target ABI is verified on the macOS leg of CI.
-    //
-    // Calling the block is what enables it (Kotlin 2.4 removed `enabled`), which
-    // is why it lives here and not in the shared convention plugin:
-    // `:wake-testing` ships test fakes whose surface is meant to flex, so it
-    // deliberately doesn't opt in.
-    @OptIn(ExperimentalAbiValidation::class)
-    abiValidation { }
 }
 
 skie {
