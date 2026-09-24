@@ -344,8 +344,9 @@ forbidden.** Two channels, no overlap:
 
 - KMMBridge config lives in the `kmmbridge { }` block in `wake/build.gradle.kts`;
   the framework name is `WakeKit`, matching the convention plugin's `baseName`.
-- Versioning: the release workflow computes the version and passes
-  `-Pversion=X.Y.Z`; KMMBridge tags `v${version}`.
+- Versioning: the release workflow passes `-Pversion=X.Y.Z` —
+  `gradle.properties`' version, or a pre-release's — and KMMBridge tags
+  `v${version}`.
 - Publishing is CI-only: `kmmBridgePublish` only exists when
   `-PENABLE_PUBLISHING=true` is passed.
 - Swift engineers never open a Gradle file. They `swift package update`.
@@ -353,11 +354,30 @@ forbidden.** Two channels, no overlap:
   committed `Package.swift`.
 - `Package.swift` is generated (`kmmBridgePublish` writes the released form,
   `spmDevBuild` the local-dev form). Don't hand-edit it beyond the initial stub;
-  never commit the local-dev form.
+  never commit either rewrite. `main` keeps the stub: the released form lives
+  only on each `vX.Y.Z` tag's release commit (`main` is branch-protected).
 
-> The `release.yml` workflow drives both channels (Maven Central via vanniktech,
-> SPM via KMMBridge); see [`.github/PUBLISHING.md`](.github/PUBLISHING.md) for the
-> maintainer runbook and one-time secret setup.
+**Releases are changeset-driven** (`.changeset/README.md`,
+`.github/PUBLISHING.md`). Every PR that reaches consumers adds a changeset
+(`mise run changeset`: `title`, `change: major|minor|patch`, `description`, then
+the full release note in place of its Unfilled callout); the **Changeset** PR
+check enforces it (label `no-changeset` to opt out — docs, CI, tests, the sample
+CLI). A changeset's `change` is the source of truth for the version — the
+author's call, which neither the PR nor tooling overrides. Merges to `main` keep
+one rolling **Release vX.Y.Z** PR up to date on `release/next` — it bumps
+`version=` in `gradle.properties` (the single source of the version), rewrites
+every `x-release-version`-marked copy (README install snippets), and writes
+`CHANGELOG.md`. Merging it runs `.github/workflows/release.yml`, which publishes
+exactly that version to both channels. While 0.x a `major` change bumps the
+minor; `version: X.Y.Z` in a changeset pins the version. **Never edit
+`version=` by hand.** Pre-releases and retries: dispatch `release.yml` with a
+`version` (e.g. `1.1.0-rc.1`). `mise run publish:local` installs the next
+`X.Y.Z-SNAPSHOT` to `~/.m2` (never the released version, which would shadow
+Central's).
+
+> [`.github/PUBLISHING.md`](.github/PUBLISHING.md) is the maintainer runbook:
+> the release pipeline, manual runs, the release-PR token setup, and one-time
+> secret setup.
 
 **Local development override:** `mise run spm:dev` (`./gradlew :wake:spmDevBuild`)
 rebuilds the debug XCFramework and flips `Package.swift` to a local path;
