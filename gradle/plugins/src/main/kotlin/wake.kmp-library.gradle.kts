@@ -26,11 +26,9 @@
  */
 
 import org.gradle.api.artifacts.VersionCatalogsExtension
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
-import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
@@ -61,18 +59,12 @@ val modulesWithoutAbiValidation = setOf("wake-testing")
 
 kotlin {
     // CLAUDE.md §4: applyDefaultHierarchyTemplate. Don't hand-roll source set
-    // wiring. iosMain + macosMain coalesce into a shared "appleMain"
-    // intermediate — both platforms share the `platform.posix` cinterop
-    // bindings 1:1 for the UDP broadcast send.
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
-    applyDefaultHierarchyTemplate {
-        common {
-            group("apple") {
-                withIos()
-                withMacos()
-            }
-        }
-    }
+    // wiring. The default template already builds common → native → apple →
+    // ios / macos, so iosMain + macosMain share an "appleMain" intermediate —
+    // both platforms use the `platform.posix` cinterop bindings 1:1 for the UDP
+    // broadcast send. It must be applied explicitly: the manual `jvmShared`
+    // dependsOn wiring below would otherwise switch the implicit default off.
+    applyDefaultHierarchyTemplate()
 
     // --- Apple targets (CLAUDE.md §1) ---------------------------------------
     // Static framework binaries with a stable bundle id. In `:wake`,
@@ -92,7 +84,6 @@ kotlin {
     // CLAUDE.md §1: arm64-v8a only. The new KMP Android plugin doesn't wire
     // ABI filters directly; consumers' app modules pin the splits. We test
     // arm64-v8a only; documented in README.
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     android {
         namespace = moduleNamespace
         compileSdk =
@@ -114,8 +105,8 @@ kotlin {
     // --- JVM target (CLAUDE.md §1) ------------------------------------------
     // Plain JVM desktop. The UDP send is pure `java.net.DatagramSocket`, so JVM
     // and Android share the exact same broadcaster — see the `jvmShared`
-    // intermediate source set below. JVM target level is pinned to 21 by the
-    // KotlinJvmTarget loop further down.
+    // intermediate source set below. The bytecode level is set with the Android
+    // target's in the compiler-options section further down.
     jvm()
 
     // --- jvmShared intermediate source set ----------------------------------
@@ -141,7 +132,6 @@ kotlin {
     sourceSets.getByName("jvmTest").dependsOn(jvmSharedTest)
 
     // --- Compiler options (CLAUDE.md §2, §3) ---------------------------------
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     compilerOptions {
         // K2 stable APIs only (CLAUDE.md §3).
         languageVersion.set(KotlinVersion.KOTLIN_2_4)
@@ -149,15 +139,22 @@ kotlin {
         allWarningsAsErrors.set(true)
     }
 
-    // Per-target JVM toolchain knobs — Android compilation needs JVM target 21
-    // (CLAUDE.md §2).
-    targets.withType<KotlinJvmTarget>().configureEach {
-        compilations.configureEach {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_21)
-                }
-            }
+    // Bytecode level for BOTH JVM-flavoured targets, from the catalog's
+    // `jvm-target` (CLAUDE.md §2). This is a consumer contract, independent of
+    // the JDK that runs the build, so it is set on each target explicitly: the
+    // AGP KMP `android` target is NOT a `KotlinJvmTarget` (a
+    // `withType<KotlinJvmTarget>()` loop never reaches it), and left unset AGP
+    // follows the build JDK — a newer build JDK would silently ship newer
+    // bytecode in the AAR.
+    val bytecodeTarget = JvmTarget.fromTarget(libs.findVersion("jvm-target").get().requiredVersion)
+    jvm {
+        compilerOptions {
+            jvmTarget.set(bytecodeTarget)
+        }
+    }
+    android {
+        compilerOptions {
+            jvmTarget.set(bytecodeTarget)
         }
     }
 
@@ -199,11 +196,17 @@ skie {
         // Disable opt-in analytics; we'll revisit if useful.
         disableUpload.set(true)
     }
-    // Wake ships no hand-written Swift sweeteners (it has no `.shared`
-    // singleton to bridge), so there's nothing for SKIE to bundle into the
-    // klib. Disabling bundling is a harmless safeguard kept in lockstep with
-    // the sibling repos' convention plugins.
+    // Swift bundling is what compiles hand-written Swift into the framework, and
+    // `:wake` ships one: src/appleMain/swift/Wake+Up.swift (the static
+    // `Wake.up(mac:)` over the `Wake.shared` singleton, CLAUDE.md §8). SKIE's
+    // `processSwiftSources<Target>` task copies `src/<sourceSet>/swift/**` into
+    // the klib (`default/skie/swift`) and the framework link compiles it from
+    // there — that task is `onlyIf { swiftBundling.enabled }`, so turning
+    // bundling off silently drops every hand-written Swift file (it was off
+    // until 2026-09 and `Wake.up(mac:)` never shipped). `true` is SKIE's
+    // default; it's spelled out so nobody "safeguards" it off again. Verify in
+    // the built framework's .swiftinterface (`static func up`).
     swiftBundling {
-        enabled.set(false)
+        enabled.set(true)
     }
 }

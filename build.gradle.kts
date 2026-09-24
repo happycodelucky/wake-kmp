@@ -7,6 +7,8 @@
  * (CLAUDE.md §10).
  */
 
+import nl.littlerobots.vcu.plugin.versionSelector
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform) apply false
     // kotlin.jvm is applied by the :apps:cli sample only. Declared here (apply
@@ -77,8 +79,6 @@ doctor {
 // it still lists pre-releases as candidates. This predicate rejects any version
 // that isn't a stable release (catches -Beta, -RC, -alpha, -M1, -eap,
 // -SNAPSHOT, …), so `mise run dependencies:outdated` shows only real upgrades.
-// littlerobots' version-catalog-update reuses this same predicate, so
-// `mise run dependencies:update` never rewrites the catalog to a pre-release.
 fun isStableVersion(version: String): Boolean {
     val hasStableKeyword = listOf("RELEASE", "FINAL", "GA").any { version.uppercase().contains(it) }
     val looksLikePlainNumber = "^[0-9,.v-]+(-r)?$".toRegex().matches(version)
@@ -88,6 +88,29 @@ fun isStableVersion(version: String): Boolean {
 tasks.withType<com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask>().configureEach {
     rejectVersionIf {
         !isStableVersion(candidate.version)
+    }
+}
+
+// version-catalog-update (`mise run dependencies:update`) resolves versions
+// itself — it does NOT read ben-manes' report — and its default selector
+// (PREFER_STABLE) accepts a pre-release whenever the current version is one. So
+// it gets the same stable-only predicate explicitly, plus:
+//   - pin `kotlin`: the Kotlin pin is SKIE-bound (CLAUDE.md §8); an automated
+//     rewrite must never move it (the same hold renovate.json5 encodes).
+//   - keepUnusedVersions: SDK levels, deployment targets and tool versions are
+//     read via `findVersion(...)`/typed accessors, not `version.ref`, so VCU
+//     would otherwise treat them as unused and delete them.
+//   - sortByKey = false: keep the hand-grouped sections.
+// VCU also drops end-of-line comments on rewrite, so catalog comments go on
+// their own line above the entry.
+versionCatalogUpdate {
+    versionSelector { isStableVersion(it.candidate.version) }
+    sortByKey.set(false)
+    keep {
+        keepUnusedVersions.set(true)
+    }
+    pin {
+        versions.add("kotlin")
     }
 }
 
@@ -113,7 +136,7 @@ subprojects {
 
     plugins.withId("org.jlleitschuh.gradle.ktlint") {
         configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
-            version.set(libs.versions.ktlint.get())
+            version.set(libs.versions.ktlint.cli.get())
             android.set(false)
             outputToConsole.set(true)
             ignoreFailures.set(false)

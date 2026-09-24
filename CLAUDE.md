@@ -260,12 +260,16 @@ the parameter label carry it. (`openUrl(url)` → `@ObjCName(swiftName = "open")
 > through a generated `Wake.shared` singleton accessor — so the raw Swift call is
 > `try await Wake.shared.up(mac:)`. To keep the `Wake.up(mac:)` pun in Swift, a
 > hand-written extension in `wake/src/appleMain/swift/Wake+Up.swift` adds a
-> *static* `Wake.up(...)` that delegates to `Wake.shared.up(...)`. SKIE
-> auto-discovers `src/appleMain/swift/` (the convention plugin sets
-> `swiftBundling.enabled = false`), so no Gradle wiring is needed. This mirrors
-> the sibling `:reachable` repo's `Reachability+Shared.swift`. Note SKIE renders
-> a bridged `suspend fun` as `async throws` (the `throws` carries cancellation),
-> so the extension is `async throws` and forwards with `try await`.
+> *static* `Wake.up(...)` that delegates to `Wake.shared.up(...)`. SKIE picks up
+> `src/<sourceSet>/swift/` **only through Swift bundling** (it copies the files
+> into the klib and compiles them at framework link), so the convention plugin
+> must keep `skie { swiftBundling { enabled = true } }` — with bundling off the
+> file is silently dropped and `Wake.up(mac:)` doesn't exist in Swift. No other
+> Gradle wiring is needed. Check the built framework's `.swiftinterface` for
+> `static func up`. This mirrors the sibling `:reachable` repo's
+> `Reachability+Shared.swift`. Note SKIE renders a bridged `suspend fun` as
+> `async throws` (the `throws` carries cancellation), so the extension is
+> `async throws` and forwards with `try await`.
 
 **`@HiddenFromObjC`** — hide Kotlin-only APIs from the generated header.
 

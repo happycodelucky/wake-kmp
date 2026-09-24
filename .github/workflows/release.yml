@@ -91,10 +91,11 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
-          # Full history so `gh release create --generate-notes` can walk
-          # commits between the previous tag and this release.
+          # Full history so the tag checks below and the release-notes
+          # generation (`gh api …/releases/generate-notes`) see every commit
+          # between the previous tag and this release.
           fetch-depth: 0
 
       # Compute the version up front so every downstream step references
