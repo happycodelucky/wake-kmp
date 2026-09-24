@@ -1,0 +1,248 @@
+# Template sync state — maintained with the paul-template-sync skill.
+#
+# last_synced is the template commit this repo has been reconciled against: every template
+# change up to it was adopted, adapted, or deliberately skipped (see [[decision]] / [[ignore]]).
+# Advance it only with `template_sync.py record`, in the same PR that lands the sync.
+
+[template]
+repo = "https://github.com/happycodelucky/kmp-template"
+branch = "main"
+last_synced = "91ffcfbc6e1690954fdee44fe653b4facc56c0da"
+last_synced_date = "2026-09-24"
+
+# Render map: how template paths and text read in this repo. Generated from the template's
+# scripts/init.sh rules; edit it where this repo deliberately differs. Replacements are
+# literal and applied in order; path rules are regexes applied in order.
+[render]
+name = "wake"
+display_name = "Wake"
+framework = "WakeKit"
+group = "com.happycodelucky"
+org = "happycodelucky"
+repo_name = "wake-kmp"
+
+[[render.replace]]
+from = "github.com/happycodelucky/__PROJECT_NAME__"
+to = "github.com/happycodelucky/wake-kmp"
+
+[[render.replace]]
+from = "__PROJECT_NAME__"
+to = "wake"
+
+[[render.replace]]
+from = "__DISPLAY_NAME__"
+to = "Wake"
+
+[[render.replace]]
+from = "__FRAMEWORK__"
+to = "WakeKit"
+
+[[render.replace]]
+from = "template.kmp-library"
+to = "wake.kmp-library"
+
+[[render.replace]]
+from = "template.publish"
+to = "wake.publish"
+
+[[render.replace]]
+from = "LIBRARY_VERSION"
+to = "WAKE_VERSION"
+
+[[render.replace]]
+from = "com.happycodelucky.src.testing"
+to = "com.happycodelucky.wake.testing"
+
+[[render.replace]]
+from = "com.happycodelucky.src.example"
+to = "com.happycodelucky.wake.example"
+
+[[render.replace]]
+from = "com.happycodelucky.src.cli"
+to = "com.happycodelucky.wake.cli"
+
+[[render.replace]]
+from = "com.happycodelucky.src"
+to = "com.happycodelucky.wake"
+
+[[render.replace]]
+from = "build:src"
+to = "build@@SRCTASK@@"
+
+[[render.replace]]
+from = ":src-testing"
+to = ":wake-testing"
+
+[[render.replace]]
+from = ":src"
+to = ":wake"
+
+[[render.replace]]
+from = "build@@SRCTASK@@"
+to = "build:src"
+
+[[render.replace]]
+from = "assembleSrcXCFramework"
+to = "assembleWakeKitXCFramework"
+
+[[render.replace]]
+from = "src-testing/build"
+to = "wake-testing/build"
+
+[[render.replace]]
+from = "src-testing/api"
+to = "wake-testing/api"
+
+[[render.replace]]
+from = "src/build"
+to = "wake/build"
+
+[[render.replace]]
+from = "src/api"
+to = "wake/api"
+
+[[render.replace]]
+from = "if-no-files-found: warn"
+to = "if-no-files-found: error"
+
+[[render.path]]
+from = "^src-testing/"
+to = "wake-testing/"
+
+[[render.path]]
+from = "^src/"
+to = "wake/"
+
+[[render.path]]
+from = "/com/happycodelucky/src(/|$)"
+to = "/com/happycodelucky/wake\\1"
+
+[[render.path]]
+from = "^gradle/plugins/src/main/kotlin/template\\."
+to = "gradle/plugins/src/main/kotlin/wake."
+
+# Standing decisions: template paths this repo deliberately does not carry.
+[[ignore]]
+path = "TEMPLATE.md"
+reason = "Template scaffolding, removed at render."
+
+[[ignore]]
+path = "scripts/init.sh"
+reason = "Template scaffolding, removed at render."
+
+[[ignore]]
+path = "scripts/template-manifest.txt"
+reason = "Template scaffolding, removed at render."
+
+[[ignore]]
+path = "apps/*"
+reason = "No sample apps; wake's only sample is its own :apps:cli (CLAUDE.md §4)."
+
+[[ignore]]
+path = "docs/*"
+reason = "No mkdocs site — removed deliberately (cf960b2); Dokka HTML only (`mise run docs`)."
+
+[[ignore]]
+path = "mkdocs.yml"
+reason = "No mkdocs site (cf960b2)."
+
+[[ignore]]
+path = "main.py"
+reason = "mkdocs macros — no docs site here."
+
+[[ignore]]
+path = ".github/workflows/docs.yml"
+reason = "No docs site / Pages deploy here."
+
+[[ignore]]
+path = "src/src/*"
+reason = "Template placeholder library code (Greeter/Platform) — wake has its own API."
+
+[[ignore]]
+path = "src/api/*"
+reason = "Template placeholder ABI dumps."
+
+[[ignore]]
+path = "src-testing/src/*"
+reason = "Template placeholder test fakes — wake has FakeWake."
+
+[[ignore]]
+path = "src-testing/api/*"
+reason = "Template placeholder ABI dumps."
+
+[[ignore]]
+path = "scripts/release.sh"
+reason = "By-hand publishing (`publish:maven`) not carried: publishing is CI-only here (CLAUDE.md §9)."
+
+# Per-change decisions. status: adopted | adapted | skipped | deferred.
+[[decision]]
+change = "37b2067, 2609ffb, 8592621, 5e548ec, a09b8a2, 5abb508, 7d3ed37, 98a2a83, 3ca7c4b — toolchain + catalog"
+status = "adapted"
+reason = "Done via paul-update-repo (wake PRs #6, #7) from the registries, not the template's pins; kebab-case keys adopted."
+synced = "2026-09-24"
+
+[[decision]]
+change = "d44e6e1, f04fb40 — explicit jvmTarget; default hierarchy template"
+status = "adopted"
+reason = "In wake PR #7. Explicit backing fields: no fitting state in wake."
+synced = "2026-09-24"
+
+[[decision]]
+change = "e2737c2, f78c8cc, 59dbeb7, 0d80b6a — changeset-driven releases + rolling release PR"
+status = "adapted"
+reason = "Changelog at CHANGELOG.md (no docs site); no docs job; no by-hand publish:maven/release.sh; version=0.1.0 (v0.1), first changeset pins 1.0.0."
+synced = "2026-09-24"
+
+[[decision]]
+change = "abafd65, a458044 — agent-fillable PR and issue templates"
+status = "adapted"
+reason = "Wake's CLAUDE.md numbering and rules (@Throws never lists CancellationException); no LESSONS log; no Discussions link."
+synced = "2026-09-24"
+
+[[decision]]
+change = "4b89ef9, 44181b9 — remove Gradle Doctor; build:profile"
+status = "adopted"
+reason = "Doctor was mostly switched off here and blocked Gradle 10."
+synced = "2026-09-24"
+
+[[decision]]
+change = "4c79e9d — checkout v7; setup-gradle v6 with basic caching"
+status = "adopted"
+reason = "checkout v7 in PR #7; setup-gradle v6 + cache-provider: basic here (MIT-only caching kept)."
+synced = "2026-09-24"
+
+[[decision]]
+change = "e3f0625 — build the sample apps in CI"
+status = "adapted"
+reason = "No sample apps; the equivalent gap was :apps:cli — CI's fast leg now runs `mise run test:cli`."
+synced = "2026-09-24"
+
+[[decision]]
+change = "8530c54 — point contributors at `mise tasks`"
+status = "adopted"
+reason = "CONTRIBUTING + CLAUDE.md §12."
+synced = "2026-09-24"
+
+[[decision]]
+change = "0a671fc — Renovate Kotlin guard, provenance, stale docs"
+status = "adopted"
+reason = "Already fixed independently in wake PR #6."
+synced = "2026-09-24"
+
+[[decision]]
+change = "90261ed, d07dbff — Pages deploy / template-repo CI guards"
+status = "skipped"
+reason = "No docs site; template-repo-only guards."
+synced = "2026-09-24"
+
+[[decision]]
+change = "mise [tools] loose pins (temurin-21, gh latest, python, xcodegen)"
+status = "skipped"
+reason = "Wake keeps exact tool pins (reproducible); python/xcodegen serve the docs site and sample apps it doesn't have."
+synced = "2026-09-24"
+
+[[decision]]
+change = ".claude/lessons/LESSONS.md"
+status = "deferred"
+reason = "Wake has no lessons log yet (only toolchain-audit.md); adopt the template's log format in a later sync."
+synced = "2026-09-24"
