@@ -25,6 +25,11 @@ Xcode is not managed by mise — install a recent Xcode that SKIE supports.
 4. Adding a dependency? Web-search the latest stable and add it to
    `gradle/libs.versions.toml` only. `mise run dependencies:outdated` lists what
    has newer stable releases.
+5. Does the change reach consumers (library code, public API, published
+   artifacts)? Add a changeset: `mise run changeset`, then replace its
+   *Unfilled* callout with the release note
+   ([`.changeset/README.md`](.changeset/README.md)). Docs/CI/test-only PRs get
+   the `no-changeset` label instead.
 
 ## The done gate
 
@@ -64,7 +69,9 @@ revert or narrow visibility (CLAUDE.md §3: `internal` by default).
 
 ## Releases
 
-Releases are CI-driven via [`.github/workflows/release.yml`](.github/workflows/release.yml)
-(computes the version, dry-run by default). See the maintainer runbook in
+Releases are driven by changesets: merges to `main` keep one rolling
+**Release vX.Y.Z** PR up to date, and merging it publishes that version to Maven
+Central and GitHub Releases (SPM). Nobody picks a version or edits `version=` in
+`gradle.properties` by hand. See the maintainer runbook in
 [`.github/PUBLISHING.md`](.github/PUBLISHING.md). Don't hand-edit `Package.swift` —
 it's generated (CLAUDE.md §9).

@@ -27,6 +27,35 @@ Wi-Fi works only on the subset of devices and access points that keep the radio 
 a low-power listen mode. (Example: a Roku wakes reliably on Ethernet but typically
 not over Wi-Fi, since its radio sleeps.)
 
+## Install
+
+### Gradle (KMP / Android / JVM)
+
+<!-- x-release-version-start -->
+```kotlin
+// gradle/libs.versions.toml
+[libraries]
+wake = { module = "com.happycodelucky.wake:wake", version = "1.0.0-rc.1" }
+wake-testing = { module = "com.happycodelucky.wake:wake-testing", version = "1.0.0-rc.1" }
+
+// build.gradle.kts
+commonMain.dependencies { implementation(libs.wake) }
+commonTest.dependencies { implementation(libs.wake.testing) } // FakeWake
+```
+<!-- x-release-version-end -->
+
+### Swift (SPM)
+
+Add this repository as a package dependency, pinned to a release tag. The
+`WakeKit` XCFramework ships as a GitHub Release asset (see
+[`.github/PUBLISHING.md`](.github/PUBLISHING.md)).
+
+<!-- x-release-version-start -->
+```swift
+.package(url: "https://github.com/happycodelucky/wake-kmp.git", from: "1.0.0-rc.1")
+```
+<!-- x-release-version-end -->
+
 ## Usage
 
 ### Kotlin
