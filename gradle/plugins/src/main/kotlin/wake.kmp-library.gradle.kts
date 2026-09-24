@@ -29,7 +29,6 @@ import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
@@ -107,8 +106,8 @@ kotlin {
     // --- JVM target (CLAUDE.md §1) ------------------------------------------
     // Plain JVM desktop. The UDP send is pure `java.net.DatagramSocket`, so JVM
     // and Android share the exact same broadcaster — see the `jvmShared`
-    // intermediate source set below. JVM target level is pinned to 21 by the
-    // KotlinJvmTarget loop further down.
+    // intermediate source set below. The bytecode level is set with the Android
+    // target's in the compiler-options section further down.
     jvm()
 
     // --- jvmShared intermediate source set ----------------------------------
@@ -142,15 +141,22 @@ kotlin {
         allWarningsAsErrors.set(true)
     }
 
-    // Per-target JVM toolchain knobs — Android compilation needs JVM target 21
-    // (CLAUDE.md §2).
-    targets.withType<KotlinJvmTarget>().configureEach {
-        compilations.configureEach {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_21)
-                }
-            }
+    // Bytecode level for BOTH JVM-flavoured targets, from the catalog's
+    // `jvm-target` (CLAUDE.md §2). This is a consumer contract, independent of
+    // the JDK that runs the build, so it is set on each target explicitly: the
+    // AGP KMP `android` target is NOT a `KotlinJvmTarget` (a
+    // `withType<KotlinJvmTarget>()` loop never reaches it), and left unset AGP
+    // follows the build JDK — a newer build JDK would silently ship newer
+    // bytecode in the AAR.
+    val bytecodeTarget = JvmTarget.fromTarget(libs.findVersion("jvm-target").get().requiredVersion)
+    jvm {
+        compilerOptions {
+            jvmTarget.set(bytecodeTarget)
+        }
+    }
+    android {
+        compilerOptions {
+            jvmTarget.set(bytecodeTarget)
         }
     }
 
