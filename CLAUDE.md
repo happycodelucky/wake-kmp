@@ -426,10 +426,35 @@ rebuilds the debug XCFramework and flips `Package.swift` to a local path;
    the library."
 5. Adding a public API consumed from Swift? Apply Section 8 rules at design
    time, not after.
-6. Done means: `mise run check` passes and
-   `./gradlew :wake:linkDebugFrameworkIosArm64` builds clean.
-7. Opting into experimental APIs? One-line comment explaining what's
+6. Run `mise tasks` to see every command — it's the task contract. Drive
+   build/test/lint/release through `mise run <task>`, not raw `./gradlew`.
+7. Add a changeset (`mise run changeset`, §9) when the change reaches
+   consumers, and replace its Unfilled callout with the release note. Its
+   `change` level is the version decision; the PR's "Type of change" only
+   restates it. The usual reading — removed/renamed public API is `major`, new
+   API `minor`, a fix `patch` — is a default, not a rule (say why in the body
+   when you differ). Docs/CI/test-only PRs get the `no-changeset` label.
+8. Done means: `mise run check` passes and
+   `./gradlew :wake:linkDebugFrameworkIosArm64` builds clean. `check` never
+   builds the sample CLI — `mise run test:cli` does (CI's fast leg runs it).
+   `mise run build:profile` profiles a slow build locally;
+   `build/reports/problems/` lists deprecations.
+9. Opting into experimental APIs? One-line comment explaining what's
    experimental and the rollback path.
+10. Opening a PR or filing an issue? GitHub applies the templates only in its
+    web UI — `gh … create --body` skips them — so build the body from them
+    yourself and pass it with `--body-file`:
+    - **PR:** start from `.github/PULL_REQUEST_TEMPLATE.md`. Follow each
+      `<!-- AI: … -->` comment, replace every `Unfilled` callout (none may
+      remain), prune each choice list to the lines that apply, and tick a
+      done-gate box only for what you actually ran or checked. Name the tool +
+      model under AI assistance, and open with `--draft` — a human marking it
+      ready is the review sign-off.
+    - **Issue:** read the matching form in `.github/ISSUE_TEMPLATE/`. Write each
+      field's `label` as a `### ` heading in form order, with `_No response_`
+      under a skipped optional field — the shape the web form produces. Use its
+      `title:` prefix and `labels:` (drop any the repo lacks — `gh` rejects
+      them). Tick a required checkbox only if it's true.
 
 ---
 

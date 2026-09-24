@@ -25,7 +25,9 @@ Xcode is not managed by mise — install a recent Xcode that SKIE supports.
 4. Adding a dependency? Web-search the latest stable and add it to
    `gradle/libs.versions.toml` only. `mise run dependencies:outdated` lists what
    has newer stable releases.
-5. Does the change reach consumers (library code, public API, published
+5. Run `mise tasks` for every command — build, test, lint and release all go
+   through `mise run <task>`.
+6. Does the change reach consumers (library code, public API, published
    artifacts)? Add a changeset: `mise run changeset`, then replace its
    *Unfilled* callout with the release note
    ([`.changeset/README.md`](.changeset/README.md)). Docs/CI/test-only PRs get
@@ -63,9 +65,13 @@ revert or narrow visibility (CLAUDE.md §3: `internal` by default).
 ## Commits & PRs
 
 - Keep commits focused; explain *why* in the body when it isn't obvious.
+- Fill in the PR template (`.github/PULL_REQUEST_TEMPLATE.md`): replace every
+  *Unfilled* callout, prune the choice lists, tick only the done-gate boxes you
+  actually verified. Agents open PRs as drafts (CLAUDE.md §12).
 - CI runs the same gate across two legs: a fast Ubuntu leg (lint + JVM/Android
-  tests + dependency analysis) and a macOS leg (full `check` + the release
-  `WakeKit.xcframework`). Green CI is required to merge.
+  tests + the sample CLI + dependency analysis) and a macOS leg (full `check` +
+  the release `WakeKit.xcframework`), plus the **Changeset** check. Green CI is
+  required to merge.
 
 ## Releases
 
