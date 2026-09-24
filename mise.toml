@@ -18,9 +18,9 @@
 # supports; CONTRIBUTING.md records the current minimum.
 
 [tools]
-java   = "temurin-21.0.11+10.0.LTS"   # CLAUDE.md §2 — JDK 21 LTS, Apple Silicon aarch64.
-gradle = "9.5.1"                       # Matches gradle/wrapper/gradle-wrapper.properties.
-gh     = "2.94.0"                       # release.yml (deferred) uses `gh release create`.
+java   = "temurin-21.0.12+101.0.LTS"   # CLAUDE.md §2 — JDK 21 LTS, Apple Silicon aarch64.
+gradle = "9.7.1"                       # Matches gradle/wrapper/gradle-wrapper.properties.
+gh     = "2.101.0"                     # release.yml uses gh (`gh release view`/`edit`, `gh api`).
 
 # Deliberately NOT pinned here:
 #   - kotlin: gradle/libs.versions.toml owns it (CLAUDE.md §2).

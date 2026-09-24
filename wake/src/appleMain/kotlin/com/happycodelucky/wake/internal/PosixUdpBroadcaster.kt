@@ -14,7 +14,8 @@
  *     not in the platform def's header set); we build the 32-bit address with
  *     [parseIpv4] + [hostToNetworkOrder] and assign `sin_addr.s_addr` directly.
  *
- * Verified against Kotlin 2.3.21 `platform.posix` (macos_arm64 platform def):
+ * Verified against Kotlin 2.3.21 `platform.posix` (macos_arm64 platform def),
+ * and still compiling on every Apple target with Kotlin 2.4.10:
  * socket / setsockopt / sendto / close are present, as are `sockaddr_in` with
  * `sin_family` / `sin_port` / `sin_addr` (a nested `in_addr` with `s_addr`).
  */

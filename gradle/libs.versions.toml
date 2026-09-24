@@ -10,23 +10,29 @@
 [versions]
 
 # --- Toolchain --------------------------------------------------------------
-# Kotlin 2.3.21 is the highest version SKIE 0.10.12 supports (Kotlin 2.4.0 is
-# out but SKIE doesn't cover it yet). CLAUDE.md §8: "If SKIE doesn't yet
-# support a Kotlin version, we wait. Don't bump Kotlin past SKIE's supported
-# range."
-kotlin = "2.3.21"
-agp = "9.2.1"                  # com.android.kotlin.multiplatform.library variant (CLAUDE.md §2).
-skie = "0.10.12"               # Supports Kotlin 2.3.21.
-kmmbridge = "1.2.1"            # XCFramework → GitHub Release asset → SPM (CLAUDE.md §9).
-dokka = "2.2.0"                # Kotlin API doc generator; Dokka v2 task layout.
+# HELD at 2.4.10: the highest Kotlin SKIE 0.10.14 supports (its
+# versionSupport.kotlin ends at 2.4.0(2.4.10)). Kotlin 2.4.20 is out; SKIE's
+# 2.4.20 support is in flight at https://github.com/touchlab/SKIE/pull/202
+# (tracked by touchlab/SKIE#205). CLAUDE.md §8: don't bump Kotlin past SKIE's
+# supported range. The hold is also encoded in renovate.json5 and in the
+# `versionCatalogUpdate { pin }` block of the root build script.
+kotlin = "2.4.10"
+# com.android.kotlin.multiplatform.library variant (CLAUDE.md §2). AGP 9.4
+# requires Gradle >= 9.6.0.
+agp = "9.4.1"
+# Supports Kotlin 2.0.0 – 2.4.10.
+skie = "0.10.14"
+# XCFramework → GitHub Release asset → SPM (CLAUDE.md §9).
+kmmbridge = "1.2.1"
+# Kotlin API doc generator; Dokka v2 task layout.
+dokka = "2.2.0"
 # vanniktech's gradle-maven-publish-plugin — publishes signed artifacts to the
-# Sonatype Central Portal (central.sonatype.com). 0.36.0 is the first release
-# that pins the JDK17 / Gradle 9 / AGP 9 floor we're already on, and the first
-# to officially support com.android.kotlin.multiplatform.library publications.
-# Coexists with KMMBridge — each plugin owns its own repository (vanniktech adds
-# mavenCentral, KMMBridge adds GitHubPackages) and its own publish-umbrella
-# task, so there's no cross-contamination.
-mavenPublish = "0.36.0"
+# Sonatype Central Portal (central.sonatype.com). Floor: JDK 17 / Gradle 9 /
+# AGP 8.13 / KGP 2.2; officially supports com.android.kotlin.multiplatform.library
+# publications. Coexists with KMMBridge — vanniktech owns Maven Central,
+# KMMBridge owns the GitHub Release asset + Package.swift, and each has its own
+# publish-umbrella task, so there's no cross-contamination.
+mavenPublish = "0.37.0"
 
 # --- Dependency management (mise dependencies:outdated / dependencies:update) -
 # ben-manes (`dependencyUpdates`) REPORTS available updates;
@@ -41,9 +47,14 @@ versionCatalogUpdate = "1.1.1"
 # dependency-analysis: flags unused deps, api-vs-implementation misuse, and
 # transitive deps you rely on directly. Run via `mise run dependencies:analyze`.
 # gradle-doctor: build-health warnings (slow config, JVM mismatches, cache
-# misses). Both verified latest stable on the Gradle Plugin Portal 2026-06-29.
-dependencyAnalysis = "3.16.0"
-gradleDoctor = "0.12.0"
+# misses). Both verified latest stable on the Gradle Plugin Portal 2026-09-23.
+# dependency-analysis 3.19.2 imports kotlin-bom 2.4.0 onto the shared build
+# classpath: with a Kotlin Gradle plugin older than 2.4 that upgrades
+# kotlin-daemon-client under KGP and breaks its compiler-daemon connection
+# (NoSuchMethodError, silent fallback to in-process compilation). Keep Kotlin
+# >= 2.4 while on this line.
+dependencyAnalysis = "3.19.2"
+gradleDoctor = "0.12.1"
 
 # --- Android SDK ------------------------------------------------------------
 android-compile-sdk = "36"

@@ -52,10 +52,11 @@ in `gradle/libs.versions.toml`.
 
 Floors as of last edit:
 
-- Kotlin 2.3.21 (bounded above by SKIE's supported range — do not bump past it)
-- Gradle 9.x
+- Kotlin 2.4.10 (bounded above by SKIE's supported range — do not bump past it;
+  2.4.20 waits on touchlab/SKIE#202)
+- Gradle 9.x (9.7.1)
 - AGP 9.x with `com.android.kotlin.multiplatform.library` (use the new `android`
-  block, not `androidTarget`)
+  block, not `androidTarget`); AGP 9.4 needs Gradle ≥ 9.6
 - JVM target 21
 - Latest stable Xcode that the current Kotlin release supports
 
