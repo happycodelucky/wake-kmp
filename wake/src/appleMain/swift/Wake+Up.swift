@@ -21,16 +21,16 @@
 // receiver (`Wake.shared`, the K/N-generated class property) and resolves to the
 // SKIE-generated member. The two never collide.
 //
-// This file lives in `:wake`'s `src/appleMain/swift/`, which SKIE
-// auto-discovers and compiles into the same framework module (`WakeKit`) as the
-// SKIE-generated Swift wrappers. No additional Gradle wiring is required — the
-// convention plugin already sets `skie.swiftBundling.enabled = false`, so this
-// extension is compiled directly into `WakeKit.framework` rather than
-// re-extracted and recompiled in downstream modules. Mirrors the sibling
-// `:reachable` project's `Reachability+Shared.swift` pattern: a static member on
-// an extension that delegates to the SKIE singleton accessor. Zero runtime cost.
+// This file lives in `:wake`'s `src/appleMain/swift/`. SKIE's Swift bundling
+// copies it into the klib and compiles it, at framework link, into the same
+// module (`WakeKit`) as the SKIE-generated Swift wrappers. That requires
+// `skie.swiftBundling.enabled = true` (set in the convention plugin) — with
+// bundling off SKIE silently skips this file and `Wake.up(mac:)` doesn't exist.
+// Mirrors the sibling `:reachable` project's `Reachability+Shared.swift`
+// pattern: a static member on an extension that delegates to the SKIE singleton
+// accessor. Zero runtime cost.
 //
-// Bridging facts, verified against SKIE 0.10.12's generated `Wake.Wake.swift`
+// Bridging facts, verified against SKIE 0.10.14's generated `Wake.Wake.swift`
 // for this module:
 //   - The singleton accessor is exactly `Wake.shared`.
 //   - Kotlin `suspend fun up` renders `async throws` (SKIE always adds `throws`

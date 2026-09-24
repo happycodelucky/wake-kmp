@@ -176,11 +176,17 @@ skie {
         // Disable opt-in analytics; we'll revisit if useful.
         disableUpload.set(true)
     }
-    // Wake ships no hand-written Swift sweeteners (it has no `.shared`
-    // singleton to bridge), so there's nothing for SKIE to bundle into the
-    // klib. Disabling bundling is a harmless safeguard kept in lockstep with
-    // the sibling repos' convention plugins.
+    // Swift bundling is what compiles hand-written Swift into the framework, and
+    // `:wake` ships one: src/appleMain/swift/Wake+Up.swift (the static
+    // `Wake.up(mac:)` over the `Wake.shared` singleton, CLAUDE.md §8). SKIE's
+    // `processSwiftSources<Target>` task copies `src/<sourceSet>/swift/**` into
+    // the klib (`default/skie/swift`) and the framework link compiles it from
+    // there — that task is `onlyIf { swiftBundling.enabled }`, so turning
+    // bundling off silently drops every hand-written Swift file (it was off
+    // until 2026-09 and `Wake.up(mac:)` never shipped). `true` is SKIE's
+    // default; it's spelled out so nobody "safeguards" it off again. Verify in
+    // the built framework's .swiftinterface (`static func up`).
     swiftBundling {
-        enabled.set(false)
+        enabled.set(true)
     }
 }
