@@ -5,6 +5,12 @@
 # latest stable. Versions in training data go stale fast. Stable only on `main`
 # (no EAP / RC / Beta). The Kotlin pin is bounded above by SKIE's supported
 # range — do not bump Kotlin past what SKIE supports.
+#
+# NAMING: every key, in every section, is lowercase kebab-case. Dashes become
+# nested accessors (`android-compile-sdk` → libs.versions.android.compile.sdk),
+# so a key must never be a whole-segment prefix of another: adding
+# `ktlint-gradle` beside `ktlint` turns libs.versions.ktlint into a group and
+# breaks `.get()`. Name siblings by artifact instead (ktlint-cli, ktlint-gradle).
 # =============================================================================
 
 [versions]
@@ -32,7 +38,7 @@ dokka = "2.2.0"
 # publications. Coexists with KMMBridge — vanniktech owns Maven Central,
 # KMMBridge owns the GitHub Release asset + Package.swift, and each has its own
 # publish-umbrella task, so there's no cross-contamination.
-mavenPublish = "0.37.0"
+maven-publish = "0.37.0"
 
 # --- Dependency management (mise dependencies:outdated / dependencies:update) -
 # ben-manes (`dependencyUpdates`) REPORTS available updates;
@@ -40,8 +46,8 @@ mavenPublish = "0.37.0"
 # They are independent: VCU >= 1.0 resolves versions itself and does not read
 # ben-manes' output. Both are configured stable-only in the root build script.
 # Verified latest stable on the Gradle Plugin Portal 2026-09-23.
-benManesVersions = "0.64.0"
-versionCatalogUpdate = "1.1.1"
+ben-manes-versions = "0.64.0"
+version-catalog-update = "1.1.1"
 
 # --- Build health / dependency hygiene --------------------------------------
 # dependency-analysis: flags unused deps, api-vs-implementation misuse, and
@@ -53,8 +59,8 @@ versionCatalogUpdate = "1.1.1"
 # kotlin-daemon-client under KGP and breaks its compiler-daemon connection
 # (NoSuchMethodError, silent fallback to in-process compilation). Keep Kotlin
 # >= 2.4 while on this line.
-dependencyAnalysis = "3.19.2"
-gradleDoctor = "0.12.1"
+dependency-analysis = "3.19.2"
+gradle-doctor = "0.12.1"
 
 # --- Android SDK ------------------------------------------------------------
 android-compile-sdk = "36"
@@ -74,10 +80,10 @@ kotlinx-coroutines = "1.11.0"
 kotlinx-atomicfu = "0.33.0"
 
 # --- Lint ------------------------------------------------------------------
-# The ktlint tool itself.
-ktlint = "1.8.0"
+# The ktlint tool itself (com.pinterest.ktlint:ktlint-cli).
+ktlint-cli = "1.8.0"
 # The org.jlleitschuh.gradle.ktlint Gradle plugin.
-ktlintGradle = "14.2.0"
+ktlint-gradle = "14.2.0"
 # detekt 1.23.8 is the latest stable; the 2.x line (new plugin id dev.detekt)
 # is still alpha as of September 2026 and CLAUDE.md §2 bans pre-stable on main.
 detekt = "1.23.8"
@@ -101,7 +107,7 @@ android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref
 # hard-coding Touchlab's internal artifact name.
 skie-gradle-plugin = { module = "co.touchlab.skie:co.touchlab.skie.gradle.plugin", version.ref = "skie" }
 dokka-gradle-plugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
-vanniktech-maven-publish-gradle-plugin = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "mavenPublish" }
+vanniktech-maven-publish-gradle-plugin = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "maven-publish" }
 
 
 [plugins]
@@ -114,7 +120,7 @@ kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 skie = { id = "co.touchlab.skie", version.ref = "skie" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-gradle" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 # kmmbridge-github — applied in wake/build.gradle.kts. Publishes the
 # SKIE-enhanced WakeKit.xcframework zip as a GitHub *Release* asset (public,
@@ -128,10 +134,10 @@ kmmbridge-github = { id = "co.touchlab.kmmbridge.github", version.ref = "kmmbrid
 # Vanniktech Maven Publish — Maven Central Portal upload + GPG signing + sources/
 # javadoc jars + POM-metadata DSL. Configured in the `wake.publish` convention
 # plugin (gradle/plugins); modules add only POM name/description.
-maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
+maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
 # Dependency-update tooling (mise dependencies:outdated / dependencies:update).
-ben-manes-versions = { id = "io.github.ben-manes.versions", version.ref = "benManesVersions" }
-version-catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "versionCatalogUpdate" }
+ben-manes-versions = { id = "io.github.ben-manes.versions", version.ref = "ben-manes-versions" }
+version-catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "version-catalog-update" }
 # Build-health tooling (mise dependencies:analyze / build:doctor).
-dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependencyAnalysis" }
-gradle-doctor = { id = "com.osacky.doctor", version.ref = "gradleDoctor" }
+dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependency-analysis" }
+gradle-doctor = { id = "com.osacky.doctor", version.ref = "gradle-doctor" }
