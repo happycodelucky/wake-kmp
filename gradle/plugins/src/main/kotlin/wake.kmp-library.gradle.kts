@@ -26,7 +26,6 @@
  */
 
 import org.gradle.api.artifacts.VersionCatalogsExtension
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
@@ -53,18 +52,12 @@ val moduleNamespace = "com.happycodelucky." + name.replace("-", ".")
 
 kotlin {
     // CLAUDE.md §4: applyDefaultHierarchyTemplate. Don't hand-roll source set
-    // wiring. iosMain + macosMain coalesce into a shared "appleMain"
-    // intermediate — both platforms share the `platform.posix` cinterop
-    // bindings 1:1 for the UDP broadcast send.
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
-    applyDefaultHierarchyTemplate {
-        common {
-            group("apple") {
-                withIos()
-                withMacos()
-            }
-        }
-    }
+    // wiring. The default template already builds common → native → apple →
+    // ios / macos, so iosMain + macosMain share an "appleMain" intermediate —
+    // both platforms use the `platform.posix` cinterop bindings 1:1 for the UDP
+    // broadcast send. It must be applied explicitly: the manual `jvmShared`
+    // dependsOn wiring below would otherwise switch the implicit default off.
+    applyDefaultHierarchyTemplate()
 
     // --- Apple targets (CLAUDE.md §1) ---------------------------------------
     // Static framework binaries with a stable bundle id. In `:wake`,
@@ -84,7 +77,6 @@ kotlin {
     // CLAUDE.md §1: arm64-v8a only. The new KMP Android plugin doesn't wire
     // ABI filters directly; consumers' app modules pin the splits. We test
     // arm64-v8a only; documented in README.
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     android {
         namespace = moduleNamespace
         compileSdk =
@@ -133,7 +125,6 @@ kotlin {
     sourceSets.getByName("jvmTest").dependsOn(jvmSharedTest)
 
     // --- Compiler options (CLAUDE.md §2, §3) ---------------------------------
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     compilerOptions {
         // K2 stable APIs only (CLAUDE.md §3).
         languageVersion.set(KotlinVersion.KOTLIN_2_4)

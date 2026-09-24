@@ -78,8 +78,8 @@ kotlinx-atomicfu = "0.33.0"
 ktlint = "1.8.0"
 # The org.jlleitschuh.gradle.ktlint Gradle plugin.
 ktlintGradle = "14.2.0"
-# detekt 1.23.8 is the latest stable; the 2.x line is alpha-only as of
-# June 2026 and CLAUDE.md §2 bans pre-stable on main.
+# detekt 1.23.8 is the latest stable; the 2.x line (new plugin id dev.detekt)
+# is still alpha as of September 2026 and CLAUDE.md §2 bans pre-stable on main.
 detekt = "1.23.8"
 
 
@@ -121,13 +121,13 @@ detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 # unauthenticated download — unlike GitHub Packages, which requires a PAT even
 # on public repos) and regenerates the root Package.swift to reference it by
 # URL + checksum. See the `kmmbridge { }` block in wake/build.gradle.kts
-# and the SPM steps in .github/workflows/release.yml (deferred to a follow-up).
+# and the SPM steps in .github/workflows/release.yml.
 # The kmmbridge-github artifact is a superset of the core kmmbridge plugin
 # in 1.2.x — applying both produces a duplicate-extension error.
 kmmbridge-github = { id = "co.touchlab.kmmbridge.github", version.ref = "kmmbridge" }
 # Vanniktech Maven Publish — Maven Central Portal upload + GPG signing + sources/
-# javadoc jars + POM-metadata DSL. See `mavenPublishing { }` in
-# wake/build.gradle.kts for the configuration.
+# javadoc jars + POM-metadata DSL. Configured in the `wake.publish` convention
+# plugin (gradle/plugins); modules add only POM name/description.
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
 # Dependency-update tooling (mise dependencies:outdated / dependencies:update).
 ben-manes-versions = { id = "io.github.ben-manes.versions", version.ref = "benManesVersions" }
