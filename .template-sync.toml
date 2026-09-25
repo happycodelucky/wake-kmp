@@ -246,3 +246,9 @@ change = ".claude/lessons/LESSONS.md"
 status = "deferred"
 reason = "Wake has no lessons log yet (only toolchain-audit.md); adopt the template's log format in a later sync."
 synced = "2026-09-24"
+
+[[decision]]
+change = "README shields (template README header)"
+status = "adapted"
+reason = "Static platform/Kotlin shields adopted; license badge MIT (wake relicensed in c28915b; the template stays Apache 2.0); added live Maven Central + CI badges."
+synced = "2026-09-24"
