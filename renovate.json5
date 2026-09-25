@@ -16,6 +16,13 @@
   extends: [
     'config:recommended',
   ],
+  // Dependency bumps carry no changeset: the Changeset PR check
+  // (.github/workflows/changeset.yml) passes a PR labelled `no-changeset`.
+  // `addLabels` merges with a packageRule's own `labels` (the SKIE rule
+  // below) instead of being replaced by them. Worth a changeset anyway —
+  // e.g. a major coroutines bump consumers will feel — then remove the label
+  // and add one to the PR.
+  addLabels: ['no-changeset'],
   packageRules: [
     {
       // Never EAP / RC / beta / alpha on main. Renovate's default versioning

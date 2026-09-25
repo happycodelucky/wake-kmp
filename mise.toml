@@ -103,18 +103,17 @@ run = "./gradlew :wake:updateKotlinAbi"
 description = "Dependency hygiene: unused deps, api-vs-implementation misuse, undeclared transitives (dependency-analysis)."
 run = "./gradlew buildHealth"
 
-[tasks."build:doctor"]
-description = "Surface Gradle Doctor build-health diagnostics (slow config, cache misuse, JVM mismatches)."
-# A REAL build, not `--dry-run`. Gradle Doctor observes the build as it runs —
-# task execution time, cache hit/miss, download throughput, daemon and JVM
-# state — and prints its "Prescriptions" banner at the end. `--dry-run` executes
-# nothing, so Doctor has nothing to measure and the task silently reported
-# nothing while looking like it had checked.
+[tasks."build:profile"]
+description = "Profile a real build — per-task timings, configuration time, dependency resolution (local HTML report)."
+# `--profile` writes build/reports/profile/profile-<timestamp>.html. It stays
+# LOCAL — unlike `--scan`, nothing is uploaded to scans.gradle.com.
 #
-# Corollary: Doctor can only diagnose work that actually happened. On a fully
-# up-to-date tree there's little to see — run it after a `mise run clean`, or
-# right after a change that forces recompilation, when a build feels slow.
-run = "./gradlew assemble"
+# A REAL build, not `--dry-run`: a profile can only measure work that actually
+# happened. On a fully up-to-date tree there's little to see — run it after a
+# `mise run clean`, or right after a change that forces recompilation, when a
+# build feels slow. Deprecations and configuration-cache problems are listed
+# separately in build/reports/problems/problems-report.html on every build.
+run = "./gradlew assemble --profile"
 
 # --- cli (sample app) ------------------------------------------------------
 # :apps:cli is a JVM-only sample, outside the published-library check gate. Run
@@ -168,14 +167,15 @@ depends = ["build"]
 description = "Rebuild the debug WakeKit.xcframework and point /Package.swift at it (local dev mode)."
 # KMMBridge's `spmDevBuild` builds the debug XCFramework and REWRITES the root
 # /Package.swift to a `.binaryTarget(path: …)` pointing at
-# wake/build/XCFrameworks/debug/WakeKit.xcframework. After the first tagged
-# release the committed Package.swift is the *released* form (a remote
-# `.binaryTarget(url:checksum:)`). The local-dev rewrite is working-tree-only:
-# do NOT commit it. `mise run spm:restore` puts the committed version back.
+# wake/build/XCFrameworks/debug/WakeKit.xcframework. The committed Package.swift
+# on main is always the stub; the released remote `.binaryTarget(url:checksum:)`
+# form exists only on each vX.Y.Z tag (.github/PUBLISHING.md). The local-dev
+# rewrite is working-tree-only: do NOT commit it. `mise run spm:restore` puts
+# the committed version back.
 run = "./gradlew :wake:spmDevBuild"
 
 [tasks."spm:restore"]
-description = "Restore the committed (released) /Package.swift after spm:dev rewrote it."
+description = "Restore the committed /Package.swift after spm:dev rewrote it."
 run = "git restore Package.swift"
 
 # --- docs ------------------------------------------------------------------
@@ -183,6 +183,40 @@ run = "git restore Package.swift"
 [tasks.docs]
 description = "Generate the Dokka API-reference HTML (output under build/dokka/html)."
 run = "./gradlew dokkaGenerate"
+
+# --- changesets / release notes ---------------------------------------------
+# Every PR that reaches consumers adds a changeset (.changeset/README.md); the
+# Release PR workflow turns the pending ones into the next version + changelog.
+# scripts/changeset.py is stdlib-only Python (python3 3.9+, as on macOS and the
+# GitHub runners).
+
+[tasks.changeset]
+description = "Add a changeset for this branch (.changeset/<branch>.md). Prompts for title / change / description unless passed as flags."
+# raw: the prompts need the terminal. Flags pass straight through, e.g.
+#   mise run changeset --title "Add retries" --change minor --description "…"
+raw = true
+run = "python3 scripts/changeset.py new"
+
+[tasks."changeset:status"]
+description = "Pending changesets, the next version they add up to, and a preview of its changelog entry."
+run = "python3 scripts/changeset.py status"
+
+[tasks."changeset:check"]
+description = "Validate every pending changeset — the PR check runs this (plus: the PR must add one)."
+run = "python3 scripts/changeset.py check"
+
+# --- publish ---------------------------------------------------------------
+# Publishing to Maven Central / GitHub Releases is CI-only (CLAUDE.md §9):
+# merging the release PR runs .github/workflows/release.yml.
+
+[tasks."publish:local"]
+description = "Publish both modules to the local Maven repo (~/.m2) as the next -SNAPSHOT (e.g. 1.0.0-SNAPSHOT)."
+# Never the plain gradle.properties version: that is the LAST RELEASE, and a
+# local build of it in ~/.m2 would shadow the real artifact from Maven Central
+# for every local project that lists mavenLocal() first. The version under
+# development instead — what the pending changesets add up to, else the next
+# patch — as a -SNAPSHOT, which a consumer opts into explicitly.
+run = './gradlew publishToMavenLocal -Pversion="$(python3 scripts/changeset.py snapshot)"'
 
 # --- dependencies ----------------------------------------------------------
 # Renovate (renovate.json5) opens PRs in CI; these are the local equivalents.

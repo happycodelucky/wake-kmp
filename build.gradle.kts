@@ -41,37 +41,19 @@ plugins {
 
     // Build-health tooling. dependency-analysis adds the root `buildHealth` task
     // (mise dependencies:analyze) — unused/misused/transitive dependency advice.
-    // gradle-doctor warns on slow config, JVM mismatches, and cache misses on
-    // every build (mise build:doctor surfaces its diagnostics explicitly).
+    // (Gradle Doctor was removed: its JAVA_HOME/daemon checks were switched off
+    // here, Gradle's problems report and `--profile` cover the rest, and it
+    // blocked Gradle 10 — `mise run build:profile` replaces `build:doctor`.)
     alias(libs.plugins.dependency.analysis)
-    alias(libs.plugins.gradle.doctor)
 }
 
 allprojects {
     group = "com.happycodelucky.wake"
-    // The in-tree version carries `-SNAPSHOT` and a `0` patch slot. Humans bump
-    // major/minor here and commit the change; the patch slot stays `0`. CI
-    // overrides this at build time via `-Pversion=...` to stamp ephemeral
-    // patches (run numbers for CI builds, exact `vX.Y.Z` for releases) without
-    // ever committing the override back.
-    version = providers.gradleProperty("version").getOrElse("0.1.0-SNAPSHOT")
-}
-
-// Gradle Doctor — build-health diagnostics. mise owns the JDK (via the [tools]
-// pins in mise.toml, CLAUDE.md §10), so its JAVA_HOME checks are advisory here,
-// not fatal: a fresh `git clone && mise run check` must never fail on a tool's
-// environment opinion. The remaining checks (slow config, negative-avoidance,
-// cache misuse) stay on.
-doctor {
-    javaHome {
-        // mise puts the right JDK on PATH; JAVA_HOME may be unset. Warn, don't fail.
-        ensureJavaHomeIsSet.set(false)
-        ensureJavaHomeMatches.set(false)
-        failOnError.set(false)
-    }
-    // Don't fail a build just because another Gradle daemon is alive (common
-    // when an IDE holds one open alongside a terminal build).
-    disallowMultipleDaemons.set(false)
+    // `version` lives in gradle.properties: the last version released from
+    // main, bumped only by the release PR (scripts/changeset.py). CI stamps
+    // non-release builds with `-Pversion=…-ci.N`; a pre-release passes its own
+    // `-Pversion`. Nothing ever writes an override back.
+    version = providers.gradleProperty("version").get()
 }
 
 // Stable-only dependency updates (CLAUDE.md §2 / §10: no EAP / RC / Beta on

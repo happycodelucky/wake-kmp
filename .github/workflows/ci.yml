@@ -36,22 +36,33 @@ jobs:
           install: true
           cache: true
 
-      # Pinned at v5: v6 moved caching to a commercially-licensed component. v5
-      # keeps the freely-licensed caching and runs on Node 24. cache-read-only on
-      # fork PRs (which run without secrets and can't safely populate the shared
-      # cache) prevents cache poisoning.
+      # v6 defaults to "Enhanced Caching", a proprietary component under the
+      # Gradle Technologies Terms of Use. `cache-provider: basic` opts out: the
+      # MIT-licensed provider (plain actions/cache of ~/.gradle/caches +
+      # wrapper) — the proprietary library is then never loaded. (This replaces
+      # the old v5 pin, which kept free caching but stopped receiving patches in
+      # Feb 2026.) Tradeoff: basic has no restore keys, so a build-file or
+      # catalog change starts from a cold cache. See the gradle/actions
+      # DISTRIBUTION.md. cache-read-only on fork PRs (which run without secrets
+      # and can't safely populate the shared cache) prevents cache poisoning.
       - name: Set up Gradle cache
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
         with:
+          cache-provider: basic
           cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork }}
 
       # Lint + detekt + JVM/Android tests + dependency hygiene. No Apple targets
       # here — those need a Mac and run in the `apple` job.
-      - name: Lint, JVM + Android tests, dependency analysis
+      #
+      # `test:cli` builds and tests the :apps:cli sample. It's outside `check`
+      # (a JVM app, not a published module), so without this step a public-API
+      # or dependency change could break it unnoticed.
+      - name: Lint, JVM + Android tests, sample CLI, dependency analysis
         run: |
           mise run lint
           mise run test:jvm
           mise run test:android
+          mise run test:cli
           mise run dependencies:analyze
 
       - name: Upload reports on failure
@@ -83,23 +94,19 @@ jobs:
           cache: true
 
       - name: Set up Gradle cache
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
         with:
+          cache-provider: basic
           cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork }}
 
-      # Read major.minor from the in-tree fallback literal in build.gradle.kts
-      # (the `getOrElse("X.Y.0-SNAPSHOT")` argument) and stamp the patch with
-      # the CI run number. Humans bump major/minor in build.gradle.kts; CI
-      # never writes back.
+      # Stamp CI builds `<gradle.properties version>-ci.<run>` — the last
+      # release on main (the next one, on a release PR) plus the run number.
+      # Only ever an artifact name; CI never writes the version back.
       - name: Compute version
         id: version
         run: |
-          MAJOR_MINOR=$(grep -oE 'getOrElse\("[0-9]+\.[0-9]+' build.gradle.kts | head -1 | cut -d'"' -f2)
-          if [[ -z "$MAJOR_MINOR" ]]; then
-            echo "Could not parse major.minor from build.gradle.kts" >&2
-            exit 1
-          fi
-          VERSION="${MAJOR_MINOR}.0-ci.${GITHUB_RUN_NUMBER}"
+          set -euo pipefail
+          VERSION="$(python3 scripts/changeset.py current)-ci.${GITHUB_RUN_NUMBER}"
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Computed CI version: $VERSION"
 

@@ -55,15 +55,13 @@ version-catalog-update = "1.1.1"
 # --- Build health / dependency hygiene --------------------------------------
 # dependency-analysis: flags unused deps, api-vs-implementation misuse, and
 # transitive deps you rely on directly. Run via `mise run dependencies:analyze`.
-# gradle-doctor: build-health warnings (slow config, JVM mismatches, cache
-# misses). Both verified latest stable on the Gradle Plugin Portal 2026-09-23.
+# Verified latest stable on the Gradle Plugin Portal 2026-09-23.
 # dependency-analysis 3.19.2 imports kotlin-bom 2.4.0 onto the shared build
 # classpath: with a Kotlin Gradle plugin older than 2.4 that upgrades
 # kotlin-daemon-client under KGP and breaks its compiler-daemon connection
 # (NoSuchMethodError, silent fallback to in-process compilation). Keep Kotlin
 # >= 2.4 while on this line.
 dependency-analysis = "3.19.2"
-gradle-doctor = "0.12.1"
 
 # --- Android SDK ------------------------------------------------------------
 android-compile-sdk = "36"
@@ -144,6 +142,5 @@ maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publ
 # `DependencyUpdatesTask` import in the root build script) is unchanged.
 ben-manes-versions = { id = "io.github.ben-manes.versions", version.ref = "ben-manes-versions" }
 version-catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "version-catalog-update" }
-# Build-health tooling (mise dependencies:analyze / build:doctor).
+# Build-health tooling (mise dependencies:analyze).
 dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependency-analysis" }
-gradle-doctor = { id = "com.osacky.doctor", version.ref = "gradle-doctor" }

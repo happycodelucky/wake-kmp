@@ -344,8 +344,9 @@ forbidden.** Two channels, no overlap:
 
 - KMMBridge config lives in the `kmmbridge { }` block in `wake/build.gradle.kts`;
   the framework name is `WakeKit`, matching the convention plugin's `baseName`.
-- Versioning: the release workflow computes the version and passes
-  `-Pversion=X.Y.Z`; KMMBridge tags `v${version}`.
+- Versioning: the release workflow passes `-Pversion=X.Y.Z` —
+  `gradle.properties`' version, or a pre-release's — and KMMBridge tags
+  `v${version}`.
 - Publishing is CI-only: `kmmBridgePublish` only exists when
   `-PENABLE_PUBLISHING=true` is passed.
 - Swift engineers never open a Gradle file. They `swift package update`.
@@ -353,11 +354,30 @@ forbidden.** Two channels, no overlap:
   committed `Package.swift`.
 - `Package.swift` is generated (`kmmBridgePublish` writes the released form,
   `spmDevBuild` the local-dev form). Don't hand-edit it beyond the initial stub;
-  never commit the local-dev form.
+  never commit either rewrite. `main` keeps the stub: the released form lives
+  only on each `vX.Y.Z` tag's release commit (`main` is branch-protected).
 
-> The `release.yml` workflow drives both channels (Maven Central via vanniktech,
-> SPM via KMMBridge); see [`.github/PUBLISHING.md`](.github/PUBLISHING.md) for the
-> maintainer runbook and one-time secret setup.
+**Releases are changeset-driven** (`.changeset/README.md`,
+`.github/PUBLISHING.md`). Every PR that reaches consumers adds a changeset
+(`mise run changeset`: `title`, `change: major|minor|patch`, `description`, then
+the full release note in place of its Unfilled callout); the **Changeset** PR
+check enforces it (label `no-changeset` to opt out — docs, CI, tests, the sample
+CLI). A changeset's `change` is the source of truth for the version — the
+author's call, which neither the PR nor tooling overrides. Merges to `main` keep
+one rolling **Release vX.Y.Z** PR up to date on `release/next` — it bumps
+`version=` in `gradle.properties` (the single source of the version), rewrites
+every `x-release-version`-marked copy (README install snippets), and writes
+`CHANGELOG.md`. Merging it runs `.github/workflows/release.yml`, which publishes
+exactly that version to both channels. While 0.x a `major` change bumps the
+minor; `version: X.Y.Z` in a changeset pins the version. **Never edit
+`version=` by hand.** Pre-releases and retries: dispatch `release.yml` with a
+`version` (e.g. `1.1.0-rc.1`). `mise run publish:local` installs the next
+`X.Y.Z-SNAPSHOT` to `~/.m2` (never the released version, which would shadow
+Central's).
+
+> [`.github/PUBLISHING.md`](.github/PUBLISHING.md) is the maintainer runbook:
+> the release pipeline, manual runs, the release-PR token setup, and one-time
+> secret setup.
 
 **Local development override:** `mise run spm:dev` (`./gradlew :wake:spmDevBuild`)
 rebuilds the debug XCFramework and flips `Package.swift` to a local path;
@@ -406,10 +426,35 @@ rebuilds the debug XCFramework and flips `Package.swift` to a local path;
    the library."
 5. Adding a public API consumed from Swift? Apply Section 8 rules at design
    time, not after.
-6. Done means: `mise run check` passes and
-   `./gradlew :wake:linkDebugFrameworkIosArm64` builds clean.
-7. Opting into experimental APIs? One-line comment explaining what's
+6. Run `mise tasks` to see every command — it's the task contract. Drive
+   build/test/lint/release through `mise run <task>`, not raw `./gradlew`.
+7. Add a changeset (`mise run changeset`, §9) when the change reaches
+   consumers, and replace its Unfilled callout with the release note. Its
+   `change` level is the version decision; the PR's "Type of change" only
+   restates it. The usual reading — removed/renamed public API is `major`, new
+   API `minor`, a fix `patch` — is a default, not a rule (say why in the body
+   when you differ). Docs/CI/test-only PRs get the `no-changeset` label.
+8. Done means: `mise run check` passes and
+   `./gradlew :wake:linkDebugFrameworkIosArm64` builds clean. `check` never
+   builds the sample CLI — `mise run test:cli` does (CI's fast leg runs it).
+   `mise run build:profile` profiles a slow build locally;
+   `build/reports/problems/` lists deprecations.
+9. Opting into experimental APIs? One-line comment explaining what's
    experimental and the rollback path.
+10. Opening a PR or filing an issue? GitHub applies the templates only in its
+    web UI — `gh … create --body` skips them — so build the body from them
+    yourself and pass it with `--body-file`:
+    - **PR:** start from `.github/PULL_REQUEST_TEMPLATE.md`. Follow each
+      `<!-- AI: … -->` comment, replace every `Unfilled` callout (none may
+      remain), prune each choice list to the lines that apply, and tick a
+      done-gate box only for what you actually ran or checked. Name the tool +
+      model under AI assistance, and open with `--draft` — a human marking it
+      ready is the review sign-off.
+    - **Issue:** read the matching form in `.github/ISSUE_TEMPLATE/`. Write each
+      field's `label` as a `### ` heading in form order, with `_No response_`
+      under a skipped optional field — the shape the web form produces. Use its
+      `title:` prefix and `labels:` (drop any the repo lacks — `gh` rejects
+      them). Tick a required checkbox only if it's true.
 
 ---
 
