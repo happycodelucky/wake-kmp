@@ -35,8 +35,8 @@ not over Wi-Fi, since its radio sleeps.)
 ```kotlin
 // gradle/libs.versions.toml
 [libraries]
-wake = { module = "com.happycodelucky.wake:wake", version = "1.0.0-rc.1" }
-wake-testing = { module = "com.happycodelucky.wake:wake-testing", version = "1.0.0-rc.1" }
+wake = { module = "com.happycodelucky.wake:wake", version = "1.0.0" }
+wake-testing = { module = "com.happycodelucky.wake:wake-testing", version = "1.0.0" }
 
 // build.gradle.kts
 commonMain.dependencies { implementation(libs.wake) }
@@ -52,7 +52,7 @@ Add this repository as a package dependency, pinned to a release tag. The
 
 <!-- x-release-version-start -->
 ```swift
-.package(url: "https://github.com/happycodelucky/wake-kmp.git", from: "1.0.0-rc.1")
+.package(url: "https://github.com/happycodelucky/wake-kmp.git", from: "1.0.0")
 ```
 <!-- x-release-version-end -->
 
