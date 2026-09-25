@@ -1,5 +1,15 @@
 # Wake
 
+[![Maven Central](https://img.shields.io/maven-central/v/com.happycodelucky.wake/wake?style=for-the-badge&logo=apachemaven&label=Maven%20Central)](https://central.sonatype.com/artifact/com.happycodelucky.wake/wake)
+[![CI](https://img.shields.io/github/actions/workflow/status/happycodelucky/wake-kmp/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI)](https://github.com/happycodelucky/wake-kmp/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+
+![iOS 18+](https://img.shields.io/badge/iOS-18%2B-blue.svg?style=for-the-badge&logo=apple)
+![macOS 15+](https://img.shields.io/badge/macOS-15%2B-blue.svg?style=for-the-badge&logo=apple)
+![Android 11+](https://img.shields.io/badge/Android-11%2B-3DDC84.svg?style=for-the-badge&logo=android&logoColor=white)
+![JVM 21+](https://img.shields.io/badge/JVM-21%2B-orange.svg?style=for-the-badge&logo=openjdk&logoColor=white)
+![Kotlin 2.4](https://img.shields.io/badge/Kotlin-2.4-7F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white)
+
 Kotlin Multiplatform **Wake-on-LAN / Wake-on-Wireless**: send a magic packet
 over UDP broadcast to wake a device on the network by its MAC address. One small
 headless library, shared across iOS, macOS, Android, and the JVM.
