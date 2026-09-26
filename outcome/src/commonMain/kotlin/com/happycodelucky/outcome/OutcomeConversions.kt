@@ -15,7 +15,7 @@ import kotlin.native.HiddenFromObjC
 
 /** Wrap this `kotlin.Result` as an [Outcome]. */
 @HiddenFromObjC
-public fun <T> Result<T>.toOutcome(): Outcome<T> = Outcome(this)
+public fun <T> Result<T>.toOutcome(): Outcome<T> = Outcome(this, false)
 
 /** The underlying `kotlin.Result`. */
 @HiddenFromObjC

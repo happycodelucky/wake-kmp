@@ -297,7 +297,7 @@ from commonMain by any library:
 - **Kotlin:** `Outcome` wraps and delegates to `kotlin.Result`, so it has
   `Result`'s API and semantics verbatim — `isSuccess`, `getOrThrow`, `fold`,
   `map`, `onFailure`, `recover`, `outcomeCatching {}`…, plus `toResult()` /
-  `toOutcome()`. The sealed exception gives an exhaustive `when`.
+  `toOutcome()` — with the stdlib's signatures and `callsInPlace` contracts. The sealed exception gives an exhaustive `when`.
 - **Swift:** `:outcome`'s bundled Swift (compiled into every framework that
   `export`s the module) adds `try o.get()` (returns / throws), `let v: String =
   try o.get()` (value bridged to a Swift type), and `o.result(as:)`
@@ -305,6 +305,9 @@ from commonMain by any library:
   thrown **as the Kotlin exception itself**: `catch let e as WakeException`,
   `switch onEnum(of: e)`, `#expect(throws: WakeException.InvalidMacAddress.self)`.
   No per-function Swift, no per-error Swift enum, no `NSError` unwrapping.
+  Swift builds one with `Outcome<NSString>(value: "x")` /
+  `Outcome<KotlinUnit>(failure: …)` (e.g. in a Swift fake of a Kotlin interface);
+  Kotlin uses `Outcome.success` / `Outcome.failure` (`@JvmStatic`, so Java too).
 
 Rules:
 

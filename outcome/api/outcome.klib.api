@@ -11,7 +11,8 @@ open annotation class com.happycodelucky.outcome/InternalOutcomeApi : kotlin/Ann
 }
 
 final class <#A: out kotlin/Any?> com.happycodelucky.outcome/Outcome { // com.happycodelucky.outcome/Outcome|null[0]
-    constructor <init>(kotlin/Result<#A>) // com.happycodelucky.outcome/Outcome.<init>|<init>(kotlin.Result<1:0>){}[0]
+    constructor <init>(#A) // com.happycodelucky.outcome/Outcome.<init>|<init>(1:0){}[0]
+    constructor <init>(kotlin/Throwable) // com.happycodelucky.outcome/Outcome.<init>|<init>(kotlin.Throwable){}[0]
 
     final val anyValue // com.happycodelucky.outcome/Outcome.anyValue|{}anyValue[0]
         final fun <get-anyValue>(): kotlin/Any? // com.happycodelucky.outcome/Outcome.anyValue.<get-anyValue>|<get-anyValue>(){}[0]

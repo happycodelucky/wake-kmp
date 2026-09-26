@@ -26,6 +26,7 @@
 package com.happycodelucky.outcome
 
 import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.jvm.JvmStatic
 import kotlin.native.HiddenFromObjC
 import kotlin.native.ShouldRefineInSwift
 
@@ -46,70 +47,96 @@ import kotlin.native.ShouldRefineInSwift
  * parse("42").map { it * 2 }.getOrDefault(0) // 84
  * ```
  *
- * In Swift, unwrap with the bundled `get()`:
+ * In Swift, unwrap with the bundled `get()`, and construct one with the
+ * `init(value:)` / `init(failure:)` initializers — e.g. to return an `Outcome`
+ * from a Swift fake of a Kotlin interface:
  *
  * ```swift
  * let n: Int = try parse(text: "42").get()
+ * let ok = Outcome<NSString>(value: "hi")
+ * let failed = Outcome<KotlinUnit>(failure: KotlinIllegalStateException(message: "boom"))
  * ```
  */
-public class Outcome<out T>
-    @PublishedApi
-    internal constructor(
-        @PublishedApi internal val result: Result<T>,
-    ) {
-        /** `true` if this is a success. The opposite of [isFailure]. */
-        public val isSuccess: Boolean
-            get() = result.isSuccess
+public class Outcome<out T> internal constructor(
+    @PublishedApi internal val result: Result<T>,
+    // Unused; disambiguates this constructor from `constructor(value: T)`, which
+    // would otherwise clash on the JVM (`Result<T>` and `T` both erase to Object).
+    @Suppress("UNUSED_PARAMETER") disambiguator: Boolean,
+) {
+    /**
+     * A successful [Outcome] holding [value]. Kotlin callers should prefer
+     * [Outcome.success], which can't be confused with [Outcome.failure]'s
+     * constructor when [T] is itself a `Throwable`. This constructor exists
+     * so Swift can build an `Outcome` (`Outcome(value:)`).
+     */
+    public constructor(value: T) : this(Result.success(value), false)
 
-        /** `true` if this is a failure. The opposite of [isSuccess]. */
-        public val isFailure: Boolean
-            get() = result.isFailure
+    /**
+     * A failed [Outcome] holding [failure]. Kotlin callers should prefer
+     * [Outcome.failure]. This constructor exists so Swift can build an
+     * `Outcome` (`Outcome(failure:)`).
+     */
+    public constructor(failure: Throwable) : this(Result.failure(failure), false)
 
-        /** The success value, or `null` on failure. Same as `Result.getOrNull`. */
-        public fun getOrNull(): T? = result.getOrNull()
+    /** `true` if this is a success. The opposite of [isFailure]. */
+    public val isSuccess: Boolean
+        get() = result.isSuccess
 
-        /** The failure's exception, or `null` on success. Same as `Result.exceptionOrNull`. */
-        public fun exceptionOrNull(): Throwable? = result.exceptionOrNull()
+    /** `true` if this is a failure. The opposite of [isSuccess]. */
+    public val isFailure: Boolean
+        get() = result.isFailure
 
-        /**
-         * The success value, or throws the failure's exception. Same as
-         * `Result.getOrThrow`.
-         *
-         * Hidden from Swift, where an undeclared Kotlin throw would abort; Swift
-         * uses the bundled `get()` instead.
-         */
-        @HiddenFromObjC
-        public fun getOrThrow(): T = result.getOrThrow()
+    /** The success value, or `null` on failure. Same as `Result.getOrNull`. */
+    public fun getOrNull(): T? = result.getOrNull()
 
-        /**
-         * The success value with its static type erased, for the bundled Swift.
-         *
-         * Swift extensions of a generic ObjC class cannot touch its generic
-         * parameter, so the bundled `get<V>()` reads this untyped `Any?` (exposed as
-         * `__anyValue`) and bridges it with `as? V`. Kotlin callers use [getOrNull].
-         */
-        @InternalOutcomeApi
-        @ShouldRefineInSwift
-        public val anyValue: Any?
-            get() = result.getOrNull()
+    /** The failure's exception, or `null` on success. Same as `Result.exceptionOrNull`. */
+    public fun exceptionOrNull(): Throwable? = result.exceptionOrNull()
 
-        override fun equals(other: Any?): Boolean = other is Outcome<*> && other.result == result
+    /**
+     * The success value, or throws the failure's exception. Same as
+     * `Result.getOrThrow`.
+     *
+     * Hidden from Swift, where an undeclared Kotlin throw would abort; Swift
+     * uses the bundled `get()` instead.
+     */
+    @HiddenFromObjC
+    public fun getOrThrow(): T = result.getOrThrow()
 
-        override fun hashCode(): Int = result.hashCode()
+    /**
+     * The success value with its static type erased, for the bundled Swift.
+     *
+     * Swift extensions of a generic ObjC class cannot touch its generic
+     * parameter, so the bundled `get<V>()` reads this untyped `Any?` (exposed as
+     * `__anyValue`) and bridges it with `as? V`. Kotlin callers use [getOrNull].
+     */
+    @InternalOutcomeApi
+    @ShouldRefineInSwift
+    public val anyValue: Any?
+        get() = result.getOrNull()
 
-        /** `Success(v)` or `Failure(x)`, as `kotlin.Result` prints. */
-        override fun toString(): String = result.toString()
+    override fun equals(other: Any?): Boolean = other is Outcome<*> && other.result == result
 
-        /** Constructors, mirroring `Result.success` / `Result.failure`. */
-        @HiddenFromObjC
-        public companion object {
-            /** A successful [Outcome] holding [value]. */
-            public fun <T> success(value: T): Outcome<T> = Outcome(Result.success(value))
+    override fun hashCode(): Int = result.hashCode()
 
-            /** A failed [Outcome] holding [exception]. */
-            public fun <T> failure(exception: Throwable): Outcome<T> = Outcome(Result.failure(exception))
-        }
+    /** `Success(v)` or `Failure(x)`, as `kotlin.Result` prints. */
+    override fun toString(): String = result.toString()
+
+    /**
+     * Factories mirroring `Result.success` / `Result.failure` — the preferred
+     * way to build an [Outcome] in Kotlin (and, via `@JvmStatic`, from Java as
+     * `Outcome.success(x)`). Hidden from Swift, which uses the initializers.
+     */
+    @HiddenFromObjC
+    public companion object {
+        /** A successful [Outcome] holding [value]. */
+        @JvmStatic
+        public fun <T> success(value: T): Outcome<T> = Outcome(Result.success(value), false)
+
+        /** A failed [Outcome] holding [exception]. */
+        @JvmStatic
+        public fun <T> failure(exception: Throwable): Outcome<T> = Outcome(Result.failure(exception), false)
     }
+}
 
 /**
  * Marks [Outcome] members that exist only for the bundled Swift. Not for Kotlin

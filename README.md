@@ -121,8 +121,9 @@ on success and throws the Kotlin `WakeException` itself as a Swift `Error` —
 catch it by class and switch exhaustively with `onEnum(of:)`, or assert
 `#expect(throws: WakeException.InvalidMacAddress.self)` in Swift Testing. For a
 value, name the type: `let mac: String = try outcome.get()` (or
-`get(as: String.self)`); `outcome.result(as:)` gives a `Swift.Result`. Task
-cancellation arrives as `CancellationError`.
+`get(as: String.self)`); `outcome.result(as:)` gives a `Swift.Result`, and
+`Outcome<NSString>(value:)` / `Outcome<KotlinUnit>(failure:)` build one (handy in
+Swift test fakes). Task cancellation arrives as `CancellationError`.
 
 ### Looking up a MAC from an IP (macOS + JVM desktop only)
 

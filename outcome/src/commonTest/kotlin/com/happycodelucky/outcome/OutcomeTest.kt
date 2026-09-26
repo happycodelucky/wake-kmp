@@ -109,4 +109,13 @@ class OutcomeTest {
         assertSame(boom, outcomeCatching { throw boom }.exceptionOrNull())
         assertEquals(Outcome.success(5), "hello".outcomeCatching { length })
     }
+
+    @Test
+    fun constructors_match_the_factories() {
+        assertEquals(Outcome.success(1), Outcome(value = 1))
+        assertEquals(Outcome.failure<Int>(boom), Outcome<Int>(failure = boom))
+        // A Throwable *value* needs the named argument (or `success`); positional
+        // resolves to the more specific failure constructor, as documented.
+        assertTrue(Outcome<Throwable>(value = boom).isSuccess)
+    }
 }

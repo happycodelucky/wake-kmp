@@ -8,10 +8,10 @@
  * `:wake-testing`. Callers who don't need a test seam keep calling [Wake.up]
  * directly.
  *
- * Kotlin-only (`@HiddenFromObjC`): Swift cannot construct an `Outcome` (its
- * factories are Kotlin-only), so a Swift type could not usefully implement the
- * protocol. Swift consumers wanting a seam declare their own protocol over
- * `Wake.up(mac:)`.
+ * Kotlin-only (`@HiddenFromObjC`) for now. Swift consumers wanting a seam
+ * declare their own protocol over `Wake.up(mac:)`. (Swift can construct an
+ * `Outcome` via `init(value:)` / `init(failure:)`, so exporting this for Swift
+ * fakes is a possible follow-up.)
  */
 @file:OptIn(ExperimentalObjCRefinement::class)
 
