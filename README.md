@@ -54,6 +54,9 @@ commonTest.dependencies { implementation(libs.wake.testing) } // FakeWake
 ```
 <!-- x-release-version-end -->
 
+`wake` brings `com.happycodelucky.wake:outcome` (the `Outcome` result type) with
+it transitively.
+
 ### Swift (SPM)
 
 Add this repository as a package dependency, pinned to a release tag. The
@@ -70,12 +73,22 @@ Add this repository as a package dependency, pinned to a release tag. The
 
 ### Kotlin
 
+`Wake.up` returns `Outcome<Unit>` — a Swift-friendly mirror of the standard
+library's `Result`, with the same API (`isSuccess`, `getOrThrow`, `fold`,
+`onFailure`, `map`…, and `toResult()` for the stdlib type). A failure always
+holds a sealed `WakeException`, so a `when` over it is exhaustive:
+
 ```kotlin
-when (val result = Wake.up("AA:BB:CC:DD:EE:FF")) {
-    is WakeResult.Success -> println("magic packet sent")
-    is WakeResult.InvalidMacAddress -> println("bad MAC: ${result.reason}")
-    is WakeResult.NetworkError -> println("send failed: ${result.message}")
-}
+Wake.up("AA:BB:CC:DD:EE:FF")
+    .onSuccess { println("magic packet sent") }
+    .onFailure { e ->
+        when (e as WakeException) {
+            is WakeException.InvalidMacAddress -> println("bad MAC: ${e.mac}")
+            is WakeException.NetworkError -> println("send failed: ${e.message}")
+        }
+    }
+
+Wake.up(mac).getOrThrow() // or throw instead
 
 // Cross a router that forwards directed broadcasts, or change the port:
 Wake.up("aa-bb-cc-dd-ee-ff", broadcastAddress = "192.168.1.255", port = 7)
@@ -90,20 +103,27 @@ Wake.up("aa-bb-cc-dd-ee-ff", broadcastAddress = "192.168.1.255", port = 7)
 ```swift
 import WakeKit
 
-switch try await Wake.up(mac: "AA:BB:CC:DD:EE:FF") {
-case .success: print("magic packet sent")
-case let .invalidMacAddress(reason): print("bad MAC: \(reason)")
-case let .networkError(message): print("send failed: \(message)")
+do {
+    try await Wake.up(mac: "AA:BB:CC:DD:EE:FF").get()
+    print("magic packet sent")
+} catch let error as WakeException {
+    switch onEnum(of: error) {
+    case let .invalidMacAddress(e): print("bad MAC: \(e.mac)")
+    case let .networkError(e): print("send failed: \(e.message)")
+    }
 }
 ```
 
 The Swift module / SPM product is `WakeKit` (the framework is named with a
-"Kit" suffix so the module name doesn't collide with the `Wake` type). `Wake.up`
-reads identically in Kotlin and Swift: a hand-written Swift extension maps the
-static `Wake.up(mac:)` onto SKIE's `Wake.shared.up(...)`. The Swift form is
-`try await` because SKIE renders the bridged suspend call as `async throws`
-(carrying task cancellation); `up` itself reports failures through `WakeResult`,
-never by throwing.
+"Kit" suffix so the module name doesn't collide with the `Wake` type).
+`Wake.up(mac:)` returns the same `Outcome`; unwrap it with `get()`, which returns
+on success and throws the Kotlin `WakeException` itself as a Swift `Error` —
+catch it by class and switch exhaustively with `onEnum(of:)`, or assert
+`#expect(throws: WakeException.InvalidMacAddress.self)` in Swift Testing. For a
+value, name the type: `let mac: String = try outcome.get()` (or
+`get(as: String.self)`); `outcome.result(as:)` gives a `Swift.Result`, and
+`Outcome<NSString>(value:)` / `Outcome<KotlinUnit>(failure:)` build one (handy in
+Swift test fakes). Task cancellation arrives as `CancellationError`.
 
 ### Looking up a MAC from an IP (macOS + JVM desktop only)
 
@@ -112,19 +132,20 @@ reads the host's ARP cache to resolve one — capture the MAC while the device i
 awake, then wake it by MAC later (ARP entries age out once a host goes idle).
 
 ```kotlin
-when (val result = lookupMac("192.168.1.42")) {
-    is MacLookupResult.Found -> Wake.up(result.macAddress)   // feeds straight into up()
-    is MacLookupResult.NotInCache -> println("no ARP entry — ping it first")
-    is MacLookupResult.Error -> println("lookup failed: ${result.message}")
-}
+lookupMac("192.168.1.42")                       // Outcome<String>
+    .onSuccess { mac -> Wake.up(mac) }          // feeds straight into up()
+    .onFailure { e ->
+        if (e is MacLookupException.NotInCache) println("no ARP entry — ping it first")
+    }
 ```
 
 ```swift
-// SKIE renders it as a global async function (not a Wake member):
-switch try await lookupMac(ip: "192.168.1.42") {
-case let .found(macAddress): _ = try await Wake.up(mac: macAddress)
-case .notInCache: print("no ARP entry — ping it first")
-case let .error(message): print("lookup failed: \(message)")
+// A global async function (not a Wake member):
+do {
+    let mac: String = try await lookupMac(ip: "192.168.1.42").get()
+    try await Wake.up(mac: mac).get()
+} catch is MacLookupException.NotInCache {
+    print("no ARP entry — ping it first")
 }
 ```
 
@@ -154,7 +175,7 @@ x86 (CLAUDE.md §1). The library is headless — any UI lives in the consuming a
 On iOS the first broadcast *send* triggers the Local Network privacy prompt, so
 the embedding app must supply `NSLocalNetworkUsageDescription` in its Info.plist
 — without it iOS silently drops the packet and `Wake.up` still reports
-`WakeResult.Success` (the datagram was handed to the OS, not delivered). This is
+success (the datagram was handed to the OS, not delivered). This is
 the app's own Info.plist, not something the library can vendor — unlike Android's
 `INTERNET` permission, which merges in from the library manifest. macOS does not
 prompt. If broadcasts still don't leave the device, the app may additionally need
@@ -165,7 +186,7 @@ the `com.apple.developer.networking.multicast` entitlement.
 Because `Wake.up(...)` is a static call, a feature you want to unit-test depends
 on the small `WakeSender` interface instead — production wires `Wake.asSender()`,
 tests wire `FakeWake` from `:wake-testing`. `FakeWake` records every `up` call
-and returns a programmable `WakeResult` without opening a socket:
+and returns a programmable `Outcome` without opening a socket:
 
 ```kotlin
 // Production: WakeMyDesktop(wake = Wake.asSender())
@@ -174,13 +195,15 @@ class WakeMyDesktop(private val wake: WakeSender = Wake.asSender()) {
 }
 
 // Test:
-val fake = FakeWake(result = WakeResult.NetworkError("no route to host"))
-WakeMyDesktop(wake = fake).run()
+val fake = FakeWake(result = Outcome.failure(WakeException.NetworkError("no route to host")))
+val result = WakeMyDesktop(wake = fake).run()
+assertIs<WakeException.NetworkError>(result.exceptionOrNull())
 assertEquals("AA:BB:CC:DD:EE:FF", fake.lastCall?.mac)
 ```
 
 Code that doesn't need a test seam can ignore `WakeSender` and call `Wake.up(...)`
-directly.
+directly. `WakeSender` and `FakeWake` are Kotlin-only; in Swift, declare your own
+protocol over `Wake.up(mac:)`.
 
 ## Sample CLI
 

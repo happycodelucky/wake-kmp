@@ -203,8 +203,8 @@ jobs:
       #   on neither                → publish.
       #
       # Checks every module that ships under com.happycodelucky.wake
-      # (the library plus the `wake-testing` fakes — they version and
-      # ship together). Append artifact ids when new publishable modules land.
+      # (the library, the `outcome` Result type it exposes, and the
+      # `wake-testing` fakes — they version and ship together). Append artifact ids when new publishable modules land.
       # The grep is exact-match on `<version>X.Y.Z</version>` so 0.3.1 never
       # matches 0.3.10. Maven metadata can lag a release by ~30 min, so a
       # too-quick retry may still try to publish and get Central's duplicate
@@ -220,7 +220,7 @@ jobs:
           fi
 
           ESCAPED="${RELEASE_VERSION//./\\.}"
-          ARTIFACTS=(wake wake-testing)
+          ARTIFACTS=(outcome wake wake-testing)
           FOUND=0
           for ARTIFACT in "${ARTIFACTS[@]}"; do
             METADATA_URL="https://repo1.maven.org/maven2/com/happycodelucky/wake/${ARTIFACT}/maven-metadata.xml"
@@ -277,7 +277,7 @@ jobs:
       #
       # The Gradle invocation is *not* scoped to a module (no `:wake:` prefix),
       # so it runs across every module that applies the publish convention
-      # plugin — currently `:wake` and `:wake-testing`. Each publishes every
+      # plugin — currently `:outcome`, `:wake` and `:wake-testing`. Each publishes every
       # publication the KMP plugin registered (Android AAR, jvm jar,
       # kotlinMultiplatform metadata, per-target klibs) plus sources / javadoc
       # jars and detached GPG signatures.

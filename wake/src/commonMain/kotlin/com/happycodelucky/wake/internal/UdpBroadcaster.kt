@@ -33,14 +33,18 @@ internal interface UdpBroadcaster {
 
 /**
  * The narrow internal outcome of a [UdpBroadcaster.send]. [performWake] maps
- * this onto the public [com.happycodelucky.wake.WakeResult].
+ * this onto a `Result` failing with [com.happycodelucky.wake.WakeException].
  */
 internal sealed interface WakeSendOutcome {
     /** The datagram was handed to the OS. */
     data object Sent : WakeSendOutcome
 
-    /** The send failed; [message] describes the platform error. */
+    /**
+     * The send failed; [message] describes the platform error, and [cause] is
+     * the platform exception where there was one.
+     */
     data class Failed(
         val message: String,
+        val cause: Throwable? = null,
     ) : WakeSendOutcome
 }

@@ -105,7 +105,7 @@ Closes #
 - [ ] Native + Android compile clean (`:wake:compileKotlinMacosArm64` / `compileKotlinIosSimulatorArm64` / `compileAndroidMain`) — the JVM compile alone is not a sufficient gate
 - [ ] `mise run test:cli` passes if dependencies or the public API changed — `check` never builds the sample CLI (`:apps:cli`)
 - [ ] New/changed logic has `commonTest` coverage (`runTest` virtual time, no `Thread.sleep`)
-- [ ] Public API changes follow the Swift-interop rules (§8): sealed → exhaustive enum, `@Throws` lists only domain exceptions (never `CancellationException`), no `kotlin.Result<T>` at the boundary; a Swift-facing change is checked in the built `.swiftinterface`
+- [ ] Public API changes follow the Swift-interop rules (§8): results are `Outcome<T>` + a sealed exception, `:outcome` is `export`ed by any framework exposing it, `@Throws` (if any) lists the domain exceptions (+ `CancellationException` on suspend) with no default args, no `kotlin.Result<T>` in a Swift-visible signature; a Swift-facing change is checked in the built `.swiftinterface`
 - [ ] If the public API changed intentionally, `mise run api:dump` was run and the `api/` diff is committed and reviewed
 - [ ] New dependencies were sourced per §5 (Kotlin-first table → klibs.io → platform primitive), are stable, and were added to `gradle/libs.versions.toml` only
 - [ ] A changeset is committed (`mise run changeset`) with its release note written in place of the Unfilled callout, or the PR is labelled `no-changeset` because nothing in it reaches consumers (§9) — the Changeset check enforces both

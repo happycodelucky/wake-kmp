@@ -34,6 +34,10 @@ kotlin {
             // for the off-main-thread socket send. No atomicfu — Wake is
             // stateless and holds no mutable shared state in production.
             implementation(libs.kotlinx.coroutines.core)
+
+            // `Outcome<T>` is Wake's public result type, so `api`. The framework
+            // also `export`s it (below) — see that block for why.
+            api(project(":outcome"))
         }
 
         commonTest.dependencies {
@@ -141,6 +145,21 @@ kmmbridge {
     spm(swiftToolVersion = "6.0") {
         iOS { v("18") }
         macOS { v("15") }
+    }
+}
+
+// Export `:outcome` into WakeKit. Two reasons, both load-bearing:
+//  - Exported classes keep their plain Swift names (`Outcome`, not
+//    `OutcomeOutcome`-style prefixed ones), which is what `:outcome`'s bundled
+//    Swift (`outcome/src/appleMain/swift/`) is written against — SKIE compiles
+//    that file into WakeKit, and it fails to find `Outcome` without the export.
+//  - Swift consumers get the full `Outcome` surface, not just the members Wake's
+//    own signatures happen to touch.
+kotlin {
+    targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget>().configureEach {
+        binaries.withType<org.jetbrains.kotlin.gradle.plugin.mpp.Framework>().configureEach {
+            export(project(":outcome"))
+        }
     }
 }
 

@@ -105,6 +105,9 @@ Allowed exceptions:
   `withContext(Dispatchers.IO)` (Android) / `Dispatchers.Default` (Apple K/N
   has no `IO`).
 - No `GlobalScope`. Ever.
+- Cancellation propagates; it is never caught and turned into a value. No
+  catch-all (`catch (e: Throwable)`, `runCatching`) around suspending calls —
+  catch the specific exceptions you handle (§8 "Results").
 - `Flow`/`StateFlow`/`SharedFlow` over callbacks and `LiveData`.
 - For shared mutable state guarded **across `suspend` boundaries**, use
   `kotlinx.coroutines.sync.Mutex` or actor-style coroutines.
@@ -132,6 +135,8 @@ Allowed exceptions:
   /src/jvmMain         (JVM-only bits, currently none beyond the shared broadcaster)
   /src/commonTest      pure-logic + performWake orchestration tests
   /src/jvmSharedTest   live loopback-socket test of the java.net send — runs on JVM + Android host
+/outcome              Outcome<T> — Swift-friendly kotlin.Result mirror + its bundled Swift
+                       (src/appleMain/swift/Outcome+Swift.swift); exported into WakeKit
 /wake-testing         public FakeWake recorder (implements WakeSender) for consumers' tests
 /apps/*               native sample apps (deferred)
 ```
@@ -216,7 +221,8 @@ document the numbers in a comment.
 ## 7. UI — native per platform
 
 UI lives in the platform apps. The shared module exposes commands as
-`suspend fun` returning sealed result types (`Wake.up` → `WakeResult`). The
+`suspend fun` returning `Outcome<T>` with a sealed exception (`Wake.up` →
+`Outcome<Unit>` / `WakeException`) — see §8. The
 shared module **never** depends on a UI framework. No `androidx.compose.*` in
 any `/wake` source set.
 
@@ -273,51 +279,108 @@ the parameter label carry it. (`openUrl(url)` → `@ObjCName(swiftName = "open")
 
 **`@HiddenFromObjC`** — hide Kotlin-only APIs from the generated header.
 
-**`@Throws(...)`** — required on every public `suspend fun` and any public
-function that can throw across the boundary. List the **domain exceptions** the
-function actually throws. **`Wake.up` never throws — it returns a `WakeResult` —
-so no `@Throws` is needed.** (SKIE still renders the bridged signature as
-`async throws` to carry cancellation; that is automatic and is not something we
-annotate.)
+**`@ShouldRefineInSwift`** — export a Kotlin API under a `__`-prefixed Swift name
+for bundled Swift to build on (e.g. `Outcome.anyValue` → `__anyValue`).
 
-**Do NOT include `CancellationException` in `@Throws`.** SKIE routes coroutine
-cancellation through Swift's native `Task.cancel()`; adding it pollutes the
-generated signature.
+**`@Throws(...)`** — required on any public function that throws across the
+boundary; an exception not listed aborts the process. Prefer not throwing at
+all — return an `Outcome` (below). When you must: on a `suspend fun` Kotlin/Native
+also **requires `CancellationException`** (or a supertype) in the list, and never
+give a `@Throws` function default arguments — SKIE doesn't carry `@Throws` onto the
+overloads it generates for them (SKIE #151), so throwing through one aborts.
+**`Wake.up` doesn't throw — it returns an `Outcome` — so it has no `@Throws`**
+(SKIE still renders it `async throws`; that `throws` only carries cancellation).
 
-### Sealed result types over `kotlin.Result<T>`
+### Results: `Outcome<T>` + a sealed exception
 
-**No `kotlin.Result<T>` in any public Swift-facing signature.** SKIE has no
-mapping for it — Swift sees an opaque `KotlinResult` with no exhaustive
-`switch`. Use a project-defined `sealed interface`, which SKIE renders as an
-exhaustive Swift `enum` via `onEnum(of:)`.
+Every fallible public API returns **`Outcome<T>`** (the `:outcome` module) and
+fails with a project **`sealed class …Exception`**. One pattern, written once, used
+from commonMain by any library:
+
+- **Kotlin:** `Outcome` wraps and delegates to `kotlin.Result`, so it has
+  `Result`'s API and semantics verbatim — `isSuccess`, `getOrThrow`, `fold`,
+  `map`, `onFailure`, `recover`, `mapCatching`…, plus `toResult()` /
+  `toOutcome()` — with the stdlib's signatures and `callsInPlace` contracts. The sealed exception gives an exhaustive `when`.
+- **Swift:** `:outcome`'s bundled Swift (compiled into every framework that
+  `export`s the module) adds `try o.get()` (returns / throws), `let v: String =
+  try o.get()` (value bridged to a Swift type), and `o.result(as:)`
+  (`Swift.Result`). Kotlin `Throwable` is made a Swift `Error`, so failures are
+  thrown **as the Kotlin exception itself**: `catch let e as WakeException`,
+  `switch onEnum(of: e)`, `#expect(throws: WakeException.InvalidMacAddress.self)`.
+  No per-function Swift, no per-error Swift enum, no `NSError` unwrapping.
+  Swift builds one with `Outcome<NSString>(value: "x")` /
+  `Outcome<KotlinUnit>(failure: …)` (e.g. in a Swift fake of a Kotlin interface);
+  Kotlin uses `Outcome.success` / `Outcome.failure` (`@JvmStatic`, so Java too).
+
+Rules:
+
+- **Cancellation is never a failure.** An `Outcome` is a plain value (like
+  `Result`, nothing is classified "fatal"); a suspending API builds failures from
+  the *specific* exceptions it handles and lets everything else — cancellation
+  included — propagate. Then SKIE maps it correctly: Swift `Task.cancel()` cancels
+  the coroutine, and coroutine cancellation arrives as Swift `CancellationError`.
+  Concretely: no catch-all (`catch (e: Throwable)`, `runCatching`, `mapCatching`)
+  around suspending calls — there is deliberately no `outcomeCatching`; the
+  kotlinx.coroutines maintainers hold that no catch-all is correct in general
+  (kotlinx.coroutines#1814). And never let an internal `withTimeout` escape a
+  public suspend fun: SKIE reports its `TimeoutCancellationException` to Swift as
+  `CancellationError` (SKIE #140) though nothing was cancelled — use
+  `withTimeoutOrNull` and fail with a domain exception.
+- A framework that exposes `Outcome` must **`export(project(":outcome"))`** (see
+  `wake/build.gradle.kts`). Without it the class gets a prefixed Swift name and
+  `:outcome`'s bundled Swift fails to compile into that framework.
+- Keep `kotlin.Result` out of Swift-visible signatures — it is a value class that
+  ObjC export erases to `Any?` (KT-32352). Internals may use it freely (Wake's
+  `performWake` returns `Result` and converts with `toOutcome()` at the edge).
+- Don't define Swift-facing extensions on a Kotlin *generic* class
+  (`extension Outcome { … }`): Swift rejects any member of an extension on a
+  generic ObjC class ("cannot access the class's generic parameters at runtime").
+  Go through a non-generic protocol the class conforms to, as
+  `Outcome+Swift.swift` does with `AnyOutcome`.
+- Swift names the value type at the call site (`let x: String = try o.get()`):
+  generics reach Swift as their ObjC-bridged form (`Outcome<NSString>`,
+  `Outcome<KotlinUnit>`), and `get` bridges with `as?`. A wrong type throws
+  `OutcomeTypeMismatchError` at runtime.
+
+Rejected alternatives: `expect class Result` with `actual typealias =
+kotlin.Result` (a compile error — "aliased class cannot have type parameters with
+declaration-site variance"); `kotlin.Result` behind `@HiddenFromObjC` with a
+throwing `@Throws` twin + hand-written Swift wrapper and error enum per function
+(works, but is per-function boilerplate); a sealed result type per API (no shared
+`Result` API for Kotlin callers).
 
 ```kotlin
-// Right — SKIE renders this as a Swift enum; `onEnum(of:)` makes it exhaustive.
-public sealed interface WakeResult {
-    public data object Success : WakeResult
-    public data class InvalidMacAddress(val reason: String) : WakeResult
-    public data class NetworkError(val message: String) : WakeResult
+public sealed class WakeException(message: String, cause: Throwable? = null) : Exception(message, cause) {
+    public class InvalidMacAddress(public val mac: String) : WakeException("could not parse MAC address: \"$mac\"")
+    public class NetworkError(message: String, cause: Throwable? = null) : WakeException(message, cause)
 }
 
 public object Wake {
-    public suspend fun up(mac: String, ...): WakeResult
+    public suspend fun up(mac: String, broadcastAddress: String = …, port: Int = …): Outcome<Unit>
 }
 ```
 
-**Template in this repo:** `wake/src/commonMain/kotlin/com/happycodelucky/wake/Wake.kt`.
+```swift
+do {
+    try await Wake.up(mac: "AA:BB:CC:DD:EE:FF").get()
+} catch let e as WakeException {
+    switch onEnum(of: e) { case .invalidMacAddress: …; case .networkError: … }
+}
+```
 
-The same rule applies to `Pair<A, B>` / `Triple<…>` at the public boundary —
-define a named `data class`.
+**Templates in this repo:** `outcome/` (the type + `Outcome+Swift.swift`),
+`Wake.kt` + `WakeException.kt`, and `LookupMac.macos.kt` for a value-returning
+`Outcome<String>`. After any change, check the built `.swiftinterface`.
 
-**Internal use of `runCatching` is fine.** This rule is about return types
-crossing the Swift boundary.
+The same boundary rule applies to `Pair<A, B>` / `Triple<…>` — define a named
+`data class`.
 
 ### API design for Swift consumers
 
 1. Verbs without the object. `open(url:)`, not `openUrl(url:)`.
-2. `sealed interface` for results, not nullable + error code.
+2. `Outcome<T>` + a sealed exception for results, not nullable + error code.
 3. `Flow<T>` over callbacks. Never a callback-based public API in `commonMain`.
-4. No `kotlin.Result<T>` at the boundary.
+4. No `kotlin.Result<T>` in a Swift-visible signature — return `Outcome<T>`.
 5. No `Pair`/`Triple` in public API.
 6. No star-projected generics across the boundary. Concrete types.
 7. No companion-object factories for Swift-facing entry points. Top-level
@@ -410,6 +473,10 @@ rebuilds the debug XCFramework and flips `Package.swift` to a local path;
   `jvmShared`).
 - `kotlinx.coroutines.test` with `runTest` and virtual time. Never
   `Thread.sleep`.
+- `:outcome`'s `OutcomeTest` checks every `Outcome` operation against the
+  `kotlin.Result` one it mirrors; the Swift half is verified in the built
+  `.swiftinterface` (and, when it changes, by a Swift program linked against the
+  framework).
 - `:wake-testing`'s `FakeWake` is the consumer-facing fake; it implements the
   `WakeSender` seam, so inject it by constructor where your code depends on a
   `WakeSender` (there is no `Wake` instance or singleton to install).

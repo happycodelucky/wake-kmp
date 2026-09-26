@@ -1,0 +1,43 @@
+public abstract interface annotation class com/happycodelucky/outcome/InternalOutcomeApi : java/lang/annotation/Annotation {
+}
+
+public final class com/happycodelucky/outcome/Outcome {
+	public static final field Companion Lcom/happycodelucky/outcome/Outcome$Companion;
+	public fun <init> (Ljava/lang/Object;)V
+	public fun <init> (Ljava/lang/Throwable;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun exceptionOrNull ()Ljava/lang/Throwable;
+	public static final fun failure (Ljava/lang/Throwable;)Lcom/happycodelucky/outcome/Outcome;
+	public final fun getAnyValue ()Ljava/lang/Object;
+	public final fun getOrNull ()Ljava/lang/Object;
+	public final fun getOrThrow ()Ljava/lang/Object;
+	public final fun getResult-d1pmJ48 ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public final fun isFailure ()Z
+	public final fun isSuccess ()Z
+	public static final fun success (Ljava/lang/Object;)Lcom/happycodelucky/outcome/Outcome;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/happycodelucky/outcome/Outcome$Companion {
+	public final fun failure (Ljava/lang/Throwable;)Lcom/happycodelucky/outcome/Outcome;
+	public final fun success (Ljava/lang/Object;)Lcom/happycodelucky/outcome/Outcome;
+}
+
+public final class com/happycodelucky/outcome/OutcomeConversionsKt {
+	public static final fun toOutcome (Ljava/lang/Object;)Lcom/happycodelucky/outcome/Outcome;
+	public static final fun toResult (Lcom/happycodelucky/outcome/Outcome;)Ljava/lang/Object;
+}
+
+public final class com/happycodelucky/outcome/OutcomeExtensionsKt {
+	public static final fun fold (Lcom/happycodelucky/outcome/Outcome;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public static final fun getOrDefault (Lcom/happycodelucky/outcome/Outcome;Ljava/lang/Object;)Ljava/lang/Object;
+	public static final fun getOrElse (Lcom/happycodelucky/outcome/Outcome;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public static final fun map (Lcom/happycodelucky/outcome/Outcome;Lkotlin/jvm/functions/Function1;)Lcom/happycodelucky/outcome/Outcome;
+	public static final fun mapCatching (Lcom/happycodelucky/outcome/Outcome;Lkotlin/jvm/functions/Function1;)Lcom/happycodelucky/outcome/Outcome;
+	public static final fun onFailure (Lcom/happycodelucky/outcome/Outcome;Lkotlin/jvm/functions/Function1;)Lcom/happycodelucky/outcome/Outcome;
+	public static final fun onSuccess (Lcom/happycodelucky/outcome/Outcome;Lkotlin/jvm/functions/Function1;)Lcom/happycodelucky/outcome/Outcome;
+	public static final fun recover (Lcom/happycodelucky/outcome/Outcome;Lkotlin/jvm/functions/Function1;)Lcom/happycodelucky/outcome/Outcome;
+	public static final fun recoverCatching (Lcom/happycodelucky/outcome/Outcome;Lkotlin/jvm/functions/Function1;)Lcom/happycodelucky/outcome/Outcome;
+}
+

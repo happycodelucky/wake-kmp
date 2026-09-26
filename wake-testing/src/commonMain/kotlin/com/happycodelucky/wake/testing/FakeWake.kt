@@ -8,22 +8,25 @@
  * `Wake.asSender()`, tests wire this [FakeWake].
  *
  * [FakeWake] is a black-box double: it records every [up] call it receives and
- * returns a programmable [WakeResult] without opening a socket or sending a
+ * returns a programmable `Outcome` without opening a socket or sending a
  * packet. Construct one, inject it where your code expects a [WakeSender], then
  * assert on what was requested. There is nothing to install or restore.
+ *
+ * Kotlin-only (`@HiddenFromObjC`), like the [com.happycodelucky.wake.WakeSender]
+ * seam it implements.
  */
-@file:OptIn(ExperimentalObjCName::class)
+@file:OptIn(ExperimentalObjCRefinement::class)
 
 package com.happycodelucky.wake.testing
 
+import com.happycodelucky.outcome.Outcome
 import com.happycodelucky.wake.DEFAULT_BROADCAST_ADDRESS
 import com.happycodelucky.wake.DEFAULT_WAKE_PORT
-import com.happycodelucky.wake.WakeResult
 import com.happycodelucky.wake.WakeSender
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.update
-import kotlin.experimental.ExperimentalObjCName
-import kotlin.native.ObjCName
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 
 /**
  * A recorded [WakeSender.up] invocation.
@@ -41,12 +44,11 @@ public data class WakeCall(
 /**
  * Scriptable, recording [WakeSender] for tests.
  *
- * By default every [up] call records its arguments and returns
- * [WakeResult.Success]. Override the outcome with [result] to exercise a
- * consumer's error handling:
+ * By default every [up] call records its arguments and succeeds. Override the
+ * outcome with [result] to exercise a consumer's error handling:
  *
  * ```kotlin
- * val fake = FakeWake(result = WakeResult.NetworkError("no route to host"))
+ * val fake = FakeWake(result = Outcome.failure(WakeException.NetworkError("no route to host")))
  * val sut = MyFeature(wake = fake) // MyFeature depends on WakeSender, not Wake
  *
  * sut.wakeMyDesktop()
@@ -58,15 +60,13 @@ public data class WakeCall(
  * Thread-safe: the call counter and recorded-call list are atomic, so the fake
  * may be driven from any dispatcher.
  *
- * In Swift the class reads as `FakeWake` with `up(mac:broadcastAddress:port:)`,
- * `callCount`, `lastCall`, `calls`, `wasCalled`, and `reset()`.
- *
- * @param result the [WakeResult] every [up] call returns. Defaults to
- *   [WakeResult.Success].
+ * @param result the [Outcome] every [up] call returns. Defaults to success; a
+ *   failure should hold a [com.happycodelucky.wake.WakeException], matching the
+ *   real [com.happycodelucky.wake.Wake.up] contract.
  */
-@ObjCName(name = "WakeTestingFakeWake", swiftName = "FakeWake")
+@HiddenFromObjC
 public class FakeWake(
-    private val result: WakeResult = WakeResult.Success,
+    private val result: Outcome<Unit> = Outcome.success(Unit),
 ) : WakeSender {
     private val _callCount = atomic(0)
     private val _calls = atomic(emptyList<WakeCall>())
@@ -91,7 +91,7 @@ public class FakeWake(
         mac: String,
         broadcastAddress: String,
         port: Int,
-    ): WakeResult {
+    ): Outcome<Unit> {
         _callCount.incrementAndGet()
         _calls.update { it + WakeCall(mac, broadcastAddress, port) }
         return result

@@ -11,6 +11,8 @@
  */
 package com.happycodelucky.wake
 
+import com.happycodelucky.outcome.Outcome
+import com.happycodelucky.outcome.toOutcome
 import com.happycodelucky.wake.internal.JvmArpResolver
 import com.happycodelucky.wake.internal.performLookup
 
@@ -19,25 +21,22 @@ import com.happycodelucky.wake.internal.performLookup
  *
  * Reads `/proc/net/arp` on Linux, or shells out to the `arp` command on macOS /
  * Windows / BSD. The ARP cache only holds an entry for a host the machine has
- * recently communicated with, so [MacLookupResult.NotInCache] is a normal result
- * for an idle host — contact it first (e.g. a ping) to populate the cache.
+ * recently communicated with, so [MacLookupException.NotInCache] is a normal
+ * failure for an idle host — contact it first (e.g. a ping) to populate the cache.
  *
- * Never throws: an unparseable [ip] or an OS read error is returned as
- * [MacLookupResult.Error]. A resolved [MacLookupResult.Found.macAddress] is in the
- * canonical `AA:BB:CC:DD:EE:FF` form that [Wake.up] accepts, so it can be passed
- * straight to a wake.
+ * Never throws (other than coroutine cancellation): an unparseable [ip], a
+ * missing entry, or an OS read error is a failed [Outcome] holding a
+ * [MacLookupException]. A resolved MAC is in the canonical `AA:BB:CC:DD:EE:FF`
+ * form that [Wake.up] accepts, so it can be passed straight to a wake.
  *
  * ```kotlin
- * when (val result = lookupMac("192.168.1.42")) {
- *     is MacLookupResult.Found -> Wake.up(result.macAddress)
- *     is MacLookupResult.NotInCache -> println("no ARP entry — ping it first")
- *     is MacLookupResult.Error -> println("lookup failed: ${result.message}")
- * }
+ * lookupMac("192.168.1.42")
+ *     .mapCatching { mac -> Wake.up(mac).getOrThrow() }
+ *     .onFailure { e -> println("could not wake: ${e.message}") }
  * ```
  *
  * @param ip the target device's IPv4 address, in dotted-quad form.
- * @return [MacLookupResult.Found] with the resolved MAC, [MacLookupResult.NotInCache]
- *   when there is no current entry, or [MacLookupResult.Error] for a bad IP or a
- *   read failure.
+ * @return the resolved MAC, or a failure holding a [MacLookupException].
  */
-public suspend fun lookupMac(ip: String): MacLookupResult = performLookup(resolver = JvmArpResolver(), ip = ip)
+public suspend fun lookupMac(ip: String): Outcome<String> =
+    performLookup(resolver = JvmArpResolver(), ip = ip).toOutcome()

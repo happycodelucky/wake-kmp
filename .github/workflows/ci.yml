@@ -71,6 +71,7 @@ jobs:
         with:
           name: fast-reports
           path: |
+            outcome/build/reports/
             wake/build/reports/
             wake-testing/build/reports/
             build/reports/dependency-analysis/
@@ -139,6 +140,7 @@ jobs:
         with:
           name: test-reports-${{ steps.version.outputs.VERSION }}
           path: |
+            outcome/build/reports/
             wake/build/reports/
             wake-testing/build/reports/
           if-no-files-found: ignore

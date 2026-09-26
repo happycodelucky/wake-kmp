@@ -1,11 +1,18 @@
 /*
  * Wake — public API surface (CLAUDE.md §8).
  *
- * Designed for Swift consumers as much as Kotlin ones: [WakeResult] becomes an
- * exhaustive Swift enum via SKIE (`onEnum(of:)`), the `suspend fun up` bridges
- * to Swift `async throws` (the `throws` carries cancellation; `up` itself never
- * throws), and the default-argument overloads surface as natural Swift call
- * sites (`up(mac:)`, `up(mac:broadcastAddress:)`, …).
+ * [Wake.up] returns `Outcome<Unit>` (from `:outcome`), a Swift-friendly mirror of
+ * `kotlin.Result`. A failure always holds a [WakeException] — a sealed hierarchy,
+ * so a Kotlin `when` over it is exhaustive and Swift switches on it with SKIE's
+ * `onEnum(of:)`.
+ *
+ * - **Kotlin** gets the whole `Result` API on it (`isSuccess`, `getOrThrow`,
+ *   `fold`, `onFailure`, `map`…), and `toResult()` for the stdlib type.
+ * - **Swift** unwraps it with `:outcome`'s bundled `get()`: success returns,
+ *   failure throws the [WakeException] itself as a Swift `Error`.
+ *
+ * `up` never throws across the boundary; SKIE still renders the suspend call as
+ * `async throws`, but that `throws` only carries cancellation.
  *
  * Wake is stateless and one-shot: there is no observer lifecycle and no
  * `AutoCloseable`. Each [Wake.up] call builds the magic packet, opens a UDP
@@ -14,12 +21,13 @@
  *
  * `Wake` is a Kotlin `object` so the call site reads as the `Wake.up(...)` pun
  * in both languages. SKIE renders the object's single instance as `Wake.shared`
- * in Swift (`Wake.shared.up(mac:)`); a hand-written Swift extension in
- * `src/appleMain/swift/` (auto-discovered by SKIE) re-exposes it as the static
- * `Wake.up(mac:)` so the pun survives the bridge.
+ * in Swift; a hand-written Swift extension in `src/appleMain/swift/` re-exposes
+ * it as the static `Wake.up(mac:)`.
  */
 package com.happycodelucky.wake
 
+import com.happycodelucky.outcome.Outcome
+import com.happycodelucky.outcome.toOutcome
 import com.happycodelucky.wake.internal.defaultBroadcaster
 import com.happycodelucky.wake.internal.performWake
 import kotlin.experimental.ExperimentalObjCName
@@ -46,43 +54,6 @@ public const val DEFAULT_WAKE_PORT: Int = 9
 public const val DEFAULT_BROADCAST_ADDRESS: String = "255.255.255.255"
 
 /**
- * The outcome of a [Wake.up] attempt.
- *
- * A `sealed interface` rather than `kotlin.Result` (CLAUDE.md §8): SKIE renders
- * it as an exhaustive Swift enum, so Swift consumers get a compiler-checked
- * `switch` with structured payloads instead of an opaque `KotlinResult`.
- *
- * [Success] means the packet was handed to the OS for broadcast. Wake-on-LAN
- * is fire-and-forget over UDP — there is no acknowledgement that the target
- * received the packet or actually powered on, so [Success] reports "sent", not
- * "the device is awake."
- */
-public sealed interface WakeResult {
-    /** The 102-byte magic packet was handed to the OS for broadcast. */
-    public data object Success : WakeResult
-
-    /**
-     * The [mac][Wake.up] string could not be parsed into a 48-bit address.
-     *
-     * @property reason a human-readable description of why parsing failed.
-     */
-    public data class InvalidMacAddress(
-        val reason: String,
-    ) : WakeResult
-
-    /**
-     * The underlying socket send failed (e.g. the broadcast address was
-     * unresolvable, the socket could not be opened, or `sendto` returned an
-     * error).
-     *
-     * @property message the platform error message or errno description.
-     */
-    public data class NetworkError(
-        val message: String,
-    ) : WakeResult
-}
-
-/**
  * Sends Wake-on-LAN / Wake-on-Wireless magic packets.
  *
  * `Wake` is a stateless, one-shot entry point — there is no instance to
@@ -106,24 +77,26 @@ public sealed interface WakeResult {
  * ### Kotlin
  *
  * ```kotlin
- * when (val result = Wake.up("AA:BB:CC:DD:EE:FF")) {
- *     is WakeResult.Success -> println("magic packet sent")
- *     is WakeResult.InvalidMacAddress -> println("bad MAC: ${result.reason}")
- *     is WakeResult.NetworkError -> println("send failed: ${result.message}")
- * }
+ * Wake.up("AA:BB:CC:DD:EE:FF")
+ *     .onSuccess { println("magic packet sent") }
+ *     .onFailure { e ->
+ *         when (e as WakeException) {
+ *             is WakeException.InvalidMacAddress -> println("bad MAC: ${e.mac}")
+ *             is WakeException.NetworkError -> println("send failed: ${e.message}")
+ *         }
+ *     }
  * ```
  *
  * ### Swift
  *
- * The hand-written `Wake.up(mac:)` extension (in `src/appleMain/swift/`)
- * delegates to the SKIE-generated `Wake.shared.up(...)`, so the call reads the
- * same as Kotlin:
- *
  * ```swift
- * switch await Wake.up(mac: "AA:BB:CC:DD:EE:FF") {
- * case .success: print("magic packet sent")
- * case let .invalidMacAddress(reason): print("bad MAC: \(reason)")
- * case let .networkError(message): print("send failed: \(message)")
+ * do {
+ *     try await Wake.up(mac: "AA:BB:CC:DD:EE:FF").get()
+ * } catch let error as WakeException {
+ *     switch onEnum(of: error) {
+ *     case let .invalidMacAddress(e): print("bad MAC: \(e.mac)")
+ *     case let .networkError(e): print("send failed: \(e.message)")
+ *     }
  * }
  * ```
  */
@@ -133,23 +106,25 @@ public object Wake {
      *
      * The MAC may be formatted with colons (`AA:BB:CC:DD:EE:FF`), hyphens
      * (`aa-bb-cc-dd-ee-ff`), or no separators (`aabbccddeeff`); parsing is
-     * case-insensitive. Malformed input returns [WakeResult.InvalidMacAddress]
-     * rather than throwing — this method never throws across the Swift
-     * boundary.
+     * case-insensitive.
      *
-     * The send is fire-and-forget: [WakeResult.Success] means the datagram was
-     * handed to the OS, not that the target received it or powered on — on iOS,
-     * a missing `NSLocalNetworkUsageDescription` is one way [WakeResult.Success]
-     * can still mean nothing left the device (see [Wake]).
+     * Never throws (other than coroutine cancellation): every failure is a
+     * failed [Outcome] holding a [WakeException] —
+     * [WakeException.InvalidMacAddress] for unparseable input, or
+     * [WakeException.NetworkError] when the socket send fails.
+     *
+     * The send is fire-and-forget: success means the datagram was handed to the
+     * OS, not that the target received it or powered on — on iOS, a missing
+     * `NSLocalNetworkUsageDescription` is one way a success can still mean
+     * nothing left the device (see [Wake]).
      *
      * @param mac the target device's hardware (MAC) address.
      * @param broadcastAddress the IPv4 broadcast target. Defaults to the
      *   limited broadcast [DEFAULT_BROADCAST_ADDRESS]; pass a subnet-directed
      *   broadcast to cross a router that forwards directed broadcasts.
      * @param port the destination UDP port. Defaults to [DEFAULT_WAKE_PORT].
-     * @return [WakeResult.Success] when the packet was sent,
-     *   [WakeResult.InvalidMacAddress] when [mac] is unparseable, or
-     *   [WakeResult.NetworkError] when the socket send fails.
+     * @return success when the packet was sent, otherwise a failure holding a
+     *   [WakeException].
      */
     @OptIn(ExperimentalObjCName::class)
     @ObjCName(swiftName = "up")
@@ -157,11 +132,11 @@ public object Wake {
         mac: String,
         broadcastAddress: String = DEFAULT_BROADCAST_ADDRESS,
         port: Int = DEFAULT_WAKE_PORT,
-    ): WakeResult =
+    ): Outcome<Unit> =
         performWake(
             broadcaster = defaultBroadcaster(),
             mac = mac,
             broadcastAddress = broadcastAddress,
             port = port,
-        )
+        ).toOutcome()
 }

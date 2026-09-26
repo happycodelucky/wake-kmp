@@ -47,6 +47,13 @@ rootProject.name = "wake"
 
 include(":wake")
 
+// :outcome — `Outcome<T>`, a Swift-friendly mirror of `kotlin.Result` plus the
+// bundled Swift (`get()` / `result(as:)`) that SKIE compiles into every framework
+// exporting it. `:wake` exposes it at its public API, so it is published beside
+// it (`com.happycodelucky.wake:outcome`). Prototyped here; meant to move to its
+// own library shared by every KMP project.
+include(":outcome")
+
 // :wake-testing — public, scriptable `FakeWake` that records the wake calls
 // a unit under test makes without opening a real socket. Headless KMP module;
 // same targets as `:wake`; published as a sibling Maven Central artifact
