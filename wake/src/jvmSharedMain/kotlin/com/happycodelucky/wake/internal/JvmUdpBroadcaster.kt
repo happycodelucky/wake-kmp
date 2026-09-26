@@ -35,7 +35,7 @@ internal class JvmUdpBroadcaster : UdpBroadcaster {
                 @Suppress("TooGenericExceptionCaught")
                 e: Exception,
             ) {
-                WakeSendOutcome.Failed(e.message ?: e::class.simpleName ?: "UDP send failed")
+                WakeSendOutcome.Failed(e.message ?: e::class.simpleName ?: "UDP send failed", e)
             }
         }
 }

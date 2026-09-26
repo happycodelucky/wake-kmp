@@ -2,13 +2,15 @@ package com.happycodelucky.wake.internal
 
 import com.happycodelucky.wake.DEFAULT_BROADCAST_ADDRESS
 import com.happycodelucky.wake.DEFAULT_WAKE_PORT
-import com.happycodelucky.wake.WakeResult
+import com.happycodelucky.wake.WakeException
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 /**
  * White-box test of [performWake]'s orchestration. Uses an in-test recording
@@ -47,7 +49,7 @@ class PerformWakeTest {
     }
 
     @Test
-    fun valid_mac_builds_packet_and_returns_Success() =
+    fun valid_mac_builds_packet_and_succeeds() =
         runTest {
             val broadcaster = RecordingBroadcaster()
 
@@ -59,7 +61,7 @@ class PerformWakeTest {
                     port = DEFAULT_WAKE_PORT,
                 )
 
-            assertIs<WakeResult.Success>(result)
+            assertTrue(result.isSuccess)
             assertEquals(1, broadcaster.sendCount)
             assertEquals(MAGIC_PACKET_LENGTH, broadcaster.sentPacket?.size)
             // The packet is the real magic packet for the parsed MAC.
@@ -110,7 +112,7 @@ class PerformWakeTest {
         }
 
     @Test
-    fun invalid_mac_returns_InvalidMacAddress_and_never_sends() =
+    fun invalid_mac_fails_with_InvalidMacAddress_and_never_sends() =
         runTest {
             val broadcaster = RecordingBroadcaster()
 
@@ -122,15 +124,17 @@ class PerformWakeTest {
                     port = DEFAULT_WAKE_PORT,
                 )
 
-            assertIs<WakeResult.InvalidMacAddress>(result)
+            val error = assertIs<WakeException.InvalidMacAddress>(result.exceptionOrNull())
+            assertEquals("not-a-mac", error.mac)
             assertEquals(0, broadcaster.sendCount)
             assertNull(broadcaster.sentPacket)
         }
 
     @Test
-    fun broadcaster_failure_maps_to_NetworkError() =
+    fun broadcaster_failure_fails_with_NetworkError() =
         runTest {
-            val broadcaster = RecordingBroadcaster(WakeSendOutcome.Failed("sendto errno=49"))
+            val cause = IllegalStateException("boom")
+            val broadcaster = RecordingBroadcaster(WakeSendOutcome.Failed("sendto errno=49", cause))
 
             val result =
                 performWake(
@@ -140,7 +144,8 @@ class PerformWakeTest {
                     port = DEFAULT_WAKE_PORT,
                 )
 
-            val error = assertIs<WakeResult.NetworkError>(result)
+            val error = assertIs<WakeException.NetworkError>(result.exceptionOrNull())
             assertEquals("sendto errno=49", error.message)
+            assertSame(cause, error.cause)
         }
 }

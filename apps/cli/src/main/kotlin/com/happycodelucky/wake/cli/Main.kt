@@ -8,9 +8,9 @@
  */
 package com.happycodelucky.wake.cli
 
-import com.happycodelucky.wake.MacLookupResult
+import com.happycodelucky.wake.MacLookupException
 import com.happycodelucky.wake.Wake
-import com.happycodelucky.wake.WakeResult
+import com.happycodelucky.wake.WakeException
 import com.happycodelucky.wake.lookupMac
 import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
@@ -72,22 +72,21 @@ private suspend fun wakeByMac(
     broadcast: String,
     port: Int,
 ): Int =
-    when (val result = Wake.up(mac, broadcast, port)) {
-        is WakeResult.Success -> {
+    Wake.up(mac, broadcast, port).fold(
+        onSuccess = {
             println("magic packet sent to $mac (broadcast $broadcast:$port)")
             EXIT_OK
-        }
-
-        is WakeResult.InvalidMacAddress -> {
-            System.err.println("error: invalid MAC address \"$mac\" — ${result.reason}")
+        },
+        onFailure = { e ->
+            when (e as WakeException) {
+                is WakeException.InvalidMacAddress ->
+                    System.err.println("error: invalid MAC address \"$mac\" — ${e.message}")
+                is WakeException.NetworkError ->
+                    System.err.println("error: send to $mac failed — ${e.message}")
+            }
             EXIT_ERROR
-        }
-
-        is WakeResult.NetworkError -> {
-            System.err.println("error: send to $mac failed — ${result.message}")
-            EXIT_ERROR
-        }
-    }
+        },
+    )
 
 /** Resolve [ip] to a MAC via the ARP cache, then wake it; return the exit code. */
 private suspend fun wakeByIp(
@@ -95,19 +94,23 @@ private suspend fun wakeByIp(
     broadcast: String,
     port: Int,
 ): Int =
-    when (val lookup = lookupMac(ip)) {
-        is MacLookupResult.Found -> {
-            println("resolved $ip -> ${lookup.macAddress}")
-            wakeByMac(lookup.macAddress, broadcast, port)
-        }
-
-        is MacLookupResult.NotInCache -> {
-            System.err.println("error: no ARP entry for $ip — try contacting it first (e.g. ping $ip)")
-            EXIT_NOT_IN_CACHE
-        }
-
-        is MacLookupResult.Error -> {
-            System.err.println("error: lookup failed — ${lookup.message}")
-            EXIT_ERROR
-        }
-    }
+    lookupMac(ip).fold(
+        onSuccess = { mac ->
+            println("resolved $ip -> $mac")
+            wakeByMac(mac, broadcast, port)
+        },
+        onFailure = { e ->
+            when (e as MacLookupException) {
+                is MacLookupException.NotInCache -> {
+                    System.err.println("error: no ARP entry for $ip — try contacting it first (e.g. ping $ip)")
+                    EXIT_NOT_IN_CACHE
+                }
+                is MacLookupException.InvalidIpAddress,
+                is MacLookupException.LookupFailed,
+                -> {
+                    System.err.println("error: lookup failed — ${e.message}")
+                    EXIT_ERROR
+                }
+            }
+        },
+    )

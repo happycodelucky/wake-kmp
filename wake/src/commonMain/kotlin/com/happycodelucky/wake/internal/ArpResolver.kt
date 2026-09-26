@@ -32,7 +32,7 @@ internal interface ArpResolver {
 
 /**
  * The narrow internal outcome of an [ArpResolver.resolve]. [performLookup] maps
- * this onto the public [com.happycodelucky.wake.MacLookupResult].
+ * this onto a `Result` failing with [com.happycodelucky.wake.MacLookupException].
  */
 internal sealed interface ArpLookupOutcome {
     /**

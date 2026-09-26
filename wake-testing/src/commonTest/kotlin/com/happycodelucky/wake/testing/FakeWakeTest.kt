@@ -2,7 +2,7 @@ package com.happycodelucky.wake.testing
 
 import com.happycodelucky.wake.DEFAULT_BROADCAST_ADDRESS
 import com.happycodelucky.wake.DEFAULT_WAKE_PORT
-import com.happycodelucky.wake.WakeResult
+import com.happycodelucky.wake.WakeException
 import com.happycodelucky.wake.WakeSender
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -14,13 +14,13 @@ import kotlin.test.assertTrue
 
 class FakeWakeTest {
     @Test
-    fun defaults_to_Success_and_records_the_call() =
+    fun defaults_to_success_and_records_the_call() =
         runTest {
             val fake = FakeWake()
 
             val result = fake.up("AA:BB:CC:DD:EE:FF")
 
-            assertIs<WakeResult.Success>(result)
+            assertTrue(result.isSuccess)
             assertTrue(fake.wasCalled)
             assertEquals(1, fake.callCount)
             assertEquals("AA:BB:CC:DD:EE:FF", fake.lastCall?.mac)
@@ -31,11 +31,11 @@ class FakeWakeTest {
     @Test
     fun returns_the_programmed_result() =
         runTest {
-            val fake = FakeWake(result = WakeResult.NetworkError("no route to host"))
+            val fake = FakeWake(result = Result.failure(WakeException.NetworkError("no route to host")))
 
             val result = fake.up("AABBCCDDEEFF")
 
-            val error = assertIs<WakeResult.NetworkError>(result)
+            val error = assertIs<WakeException.NetworkError>(result.exceptionOrNull())
             assertEquals("no route to host", error.message)
         }
 
@@ -88,6 +88,6 @@ class FakeWakeTest {
 
             val result = sender.up("AA:BB:CC:DD:EE:FF")
 
-            assertIs<WakeResult.Success>(result)
+            assertTrue(result.isSuccess)
         }
 }

@@ -1,5 +1,5 @@
 /*
- * Wake — the injectable send seam for consumers.
+ * Wake — the injectable send seam for Kotlin consumers.
  *
  * `Wake.up(...)` is a static call on a stateless `object`: zero ceremony, but
  * nothing to substitute in a unit test. [WakeSender] is the sanctioned
@@ -7,11 +7,18 @@
  * by constructor. Production passes [Wake.asSender]; tests pass `FakeWake` from
  * `:wake-testing`. Callers who don't need a test seam keep calling [Wake.up]
  * directly.
+ *
+ * Kotlin-only (`@HiddenFromObjC`): its method returns `kotlin.Result`, which has
+ * no ObjC representation, and a Swift type conforming to the exported protocol
+ * could not implement a hidden member. Swift consumers wanting a seam declare
+ * their own protocol over the throwing `Wake.up(mac:)`.
  */
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.happycodelucky.wake
 
-import kotlin.experimental.ExperimentalObjCName
-import kotlin.native.ObjCName
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 
 /**
  * An injectable abstraction over [Wake.up].
@@ -21,7 +28,7 @@ import kotlin.native.ObjCName
  *
  * ```kotlin
  * class WakeMyDesktop(private val wake: WakeSender = Wake.asSender()) {
- *     suspend fun run(): WakeResult = wake.up("AA:BB:CC:DD:EE:FF")
+ *     suspend fun run(): Result<Unit> = wake.up("AA:BB:CC:DD:EE:FF")
  * }
  * ```
  *
@@ -30,30 +37,29 @@ import kotlin.native.ObjCName
  * the sender can ignore this type entirely and call [Wake.up] directly.
  *
  * The single method mirrors [Wake.up] exactly — same parameters, same defaults,
- * same [WakeResult] — so swapping a direct `Wake.up(...)` call for an injected
+ * same `Result` — so swapping a direct `Wake.up(...)` call for an injected
  * `sender.up(...)` is a drop-in change.
  */
+@HiddenFromObjC
 public interface WakeSender {
     /**
      * Build the magic packet for [mac] and broadcast it over UDP.
      *
-     * Behaves identically to [Wake.up]: never throws across the Swift boundary,
-     * returns [WakeResult.InvalidMacAddress] for unparseable input and
-     * [WakeResult.NetworkError] for a failed send.
+     * Behaves identically to [Wake.up]: never throws (other than cancellation);
+     * a failure holds [WakeException.InvalidMacAddress] for unparseable input or
+     * [WakeException.NetworkError] for a failed send.
      *
      * @param mac the target device's hardware (MAC) address.
      * @param broadcastAddress the IPv4 broadcast target. Defaults to
      *   [DEFAULT_BROADCAST_ADDRESS].
      * @param port the destination UDP port. Defaults to [DEFAULT_WAKE_PORT].
-     * @return the mapped [WakeResult].
+     * @return success, or a failure holding a [WakeException].
      */
-    @OptIn(ExperimentalObjCName::class)
-    @ObjCName(swiftName = "up")
     public suspend fun up(
         mac: String,
         broadcastAddress: String = DEFAULT_BROADCAST_ADDRESS,
         port: Int = DEFAULT_WAKE_PORT,
-    ): WakeResult
+    ): Result<Unit>
 }
 
 /**
@@ -63,6 +69,7 @@ public interface WakeSender {
  * `Wake.up(...)`. Use it as the default constructor argument for a feature that
  * depends on a [WakeSender].
  */
+@HiddenFromObjC
 @Suppress("UnusedReceiverParameter") // Scoped to Wake for discoverability (Wake.asSender()).
 public fun Wake.asSender(): WakeSender = RealWakeSender
 
@@ -72,5 +79,5 @@ private object RealWakeSender : WakeSender {
         mac: String,
         broadcastAddress: String,
         port: Int,
-    ): WakeResult = Wake.up(mac, broadcastAddress, port)
+    ): Result<Unit> = Wake.up(mac, broadcastAddress, port)
 }
