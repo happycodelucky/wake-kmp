@@ -12,6 +12,11 @@
 // a Swift `Error` below), so callers `catch let e as SomeKotlinException` and switch
 // exhaustively with SKIE's `onEnum(of:)` — no per-error Swift enums, no NSError.
 //
+// `get()` throws whatever the Outcome holds, verbatim — it never reclassifies an
+// exception. Cancellation is not an Outcome failure: a well-behaved Kotlin API
+// lets it propagate out of the suspend call, where SKIE turns it into Swift's
+// `CancellationError` (see the "Coroutines and cancellation" KDoc on `Outcome`).
+//
 // Why a protocol instead of `extension Outcome { … }`: Kotlin generic classes are
 // exported as ObjC lightweight-generic classes, and Swift refuses any
 // (non-`@objc`) member in an extension of one ("cannot access the class's generic

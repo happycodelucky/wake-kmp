@@ -47,6 +47,22 @@ import kotlin.native.ShouldRefineInSwift
  * parse("42").map { it * 2 }.getOrDefault(0) // 84
  * ```
  *
+ * ### Coroutines and cancellation
+ *
+ * An [Outcome] is a plain value, exactly like `kotlin.Result`: constructing one
+ * never throws and nothing is classified as "fatal". Cancellation is not a
+ * failure — it must propagate as a thrown `CancellationException`, never be
+ * captured into an [Outcome]. So a suspending API returns an [Outcome] built from
+ * the specific exceptions it handles and lets everything else, cancellation
+ * included, propagate. Across the Swift boundary SKIE then does the right thing:
+ * cancelling the Swift `Task` cancels the coroutine, and the coroutine's
+ * cancellation arrives in Swift as `CancellationError`. Two things break that:
+ * catching everything (see OutcomeConversions.kt — there is no `outcomeCatching`)
+ * and letting an internal `withTimeout` escape (SKIE reports its
+ * `TimeoutCancellationException` to Swift as `CancellationError`, though the
+ * caller was never cancelled) — use `withTimeoutOrNull` and fail with a domain
+ * exception instead.
+ *
  * In Swift, unwrap with the bundled `get()`, and construct one with the
  * `init(value:)` / `init(failure:)` initializers — e.g. to return an `Outcome`
  * from a Swift fake of a Kotlin interface:

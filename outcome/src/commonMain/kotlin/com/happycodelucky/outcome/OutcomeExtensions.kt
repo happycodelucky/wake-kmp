@@ -54,7 +54,11 @@ public inline fun <R, T> Outcome<T>.map(transform: (value: T) -> R): Outcome<R> 
     return result.map(transform).toOutcome()
 }
 
-/** Like [map], but an exception from [transform] becomes a failure. Same as `Result.mapCatching`. */
+/**
+ * Like [map], but an exception from [transform] becomes a failure. Same as
+ * `Result.mapCatching` — including that it captures *every* exception, so don't
+ * call suspending code in [transform] (a cancellation would become a failure).
+ */
 @HiddenFromObjC
 public inline fun <R, T> Outcome<T>.mapCatching(transform: (value: T) -> R): Outcome<R> =
     result.mapCatching(transform).toOutcome()
@@ -66,7 +70,11 @@ public inline fun <R, T : R> Outcome<T>.recover(transform: (exception: Throwable
     return result.recover(transform).toOutcome()
 }
 
-/** Like [recover], but an exception from [transform] becomes a failure. Same as `Result.recoverCatching`. */
+/**
+ * Like [recover], but an exception from [transform] becomes a failure. Same as
+ * `Result.recoverCatching` — and, like it, captures every exception: keep
+ * suspending code out of [transform].
+ */
 @HiddenFromObjC
 public inline fun <R, T : R> Outcome<T>.recoverCatching(transform: (exception: Throwable) -> R): Outcome<R> =
     result.recoverCatching(transform).toOutcome()

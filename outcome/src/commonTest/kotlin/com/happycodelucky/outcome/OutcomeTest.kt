@@ -104,13 +104,6 @@ class OutcomeTest {
     }
 
     @Test
-    fun outcomeCatching_captures_value_or_exception() {
-        assertEquals(Outcome.success(3), outcomeCatching { 1 + 2 })
-        assertSame(boom, outcomeCatching { throw boom }.exceptionOrNull())
-        assertEquals(Outcome.success(5), "hello".outcomeCatching { length })
-    }
-
-    @Test
     fun constructors_match_the_factories() {
         assertEquals(Outcome.success(1), Outcome(value = 1))
         assertEquals(Outcome.failure<Int>(boom), Outcome<Int>(failure = boom))

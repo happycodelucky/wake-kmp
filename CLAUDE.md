@@ -105,6 +105,9 @@ Allowed exceptions:
   `withContext(Dispatchers.IO)` (Android) / `Dispatchers.Default` (Apple K/N
   has no `IO`).
 - No `GlobalScope`. Ever.
+- Cancellation propagates; it is never caught and turned into a value. No
+  catch-all (`catch (e: Throwable)`, `runCatching`) around suspending calls —
+  catch the specific exceptions you handle (§8 "Results").
 - `Flow`/`StateFlow`/`SharedFlow` over callbacks and `LiveData`.
 - For shared mutable state guarded **across `suspend` boundaries**, use
   `kotlinx.coroutines.sync.Mutex` or actor-style coroutines.
@@ -296,7 +299,7 @@ from commonMain by any library:
 
 - **Kotlin:** `Outcome` wraps and delegates to `kotlin.Result`, so it has
   `Result`'s API and semantics verbatim — `isSuccess`, `getOrThrow`, `fold`,
-  `map`, `onFailure`, `recover`, `outcomeCatching {}`…, plus `toResult()` /
+  `map`, `onFailure`, `recover`, `mapCatching`…, plus `toResult()` /
   `toOutcome()` — with the stdlib's signatures and `callsInPlace` contracts. The sealed exception gives an exhaustive `when`.
 - **Swift:** `:outcome`'s bundled Swift (compiled into every framework that
   `export`s the module) adds `try o.get()` (returns / throws), `let v: String =
@@ -311,6 +314,18 @@ from commonMain by any library:
 
 Rules:
 
+- **Cancellation is never a failure.** An `Outcome` is a plain value (like
+  `Result`, nothing is classified "fatal"); a suspending API builds failures from
+  the *specific* exceptions it handles and lets everything else — cancellation
+  included — propagate. Then SKIE maps it correctly: Swift `Task.cancel()` cancels
+  the coroutine, and coroutine cancellation arrives as Swift `CancellationError`.
+  Concretely: no catch-all (`catch (e: Throwable)`, `runCatching`, `mapCatching`)
+  around suspending calls — there is deliberately no `outcomeCatching`; the
+  kotlinx.coroutines maintainers hold that no catch-all is correct in general
+  (kotlinx.coroutines#1814). And never let an internal `withTimeout` escape a
+  public suspend fun: SKIE reports its `TimeoutCancellationException` to Swift as
+  `CancellationError` (SKIE #140) though nothing was cancelled — use
+  `withTimeoutOrNull` and fail with a domain exception.
 - A framework that exposes `Outcome` must **`export(project(":outcome"))`** (see
   `wake/build.gradle.kts`). Without it the class gets a prefixed Swift name and
   `:outcome`'s bundled Swift fails to compile into that framework.

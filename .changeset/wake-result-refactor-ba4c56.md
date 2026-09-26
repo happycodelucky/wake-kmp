@@ -23,7 +23,7 @@ that wraps and mirrors `kotlin.Result`. A failure always holds a sealed exceptio
 
 `Outcome` has `kotlin.Result`'s API and semantics: `isSuccess`, `getOrNull`,
 `getOrThrow`, `exceptionOrNull`, `fold`, `map`, `mapCatching`, `recover`,
-`onSuccess`, `onFailure`, `getOrElse`, `getOrDefault` and `outcomeCatching {}`.
+`onSuccess`, `onFailure`, `getOrElse` and `getOrDefault`.
 Use `toResult()` / `toOutcome()` to convert to and from the stdlib type.
 
 ```kotlin

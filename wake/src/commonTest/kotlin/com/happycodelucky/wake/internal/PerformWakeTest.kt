@@ -3,10 +3,15 @@ package com.happycodelucky.wake.internal
 import com.happycodelucky.wake.DEFAULT_BROADCAST_ADDRESS
 import com.happycodelucky.wake.DEFAULT_WAKE_PORT
 import com.happycodelucky.wake.WakeException
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -147,5 +152,44 @@ class PerformWakeTest {
             val error = assertIs<WakeException.NetworkError>(result.exceptionOrNull())
             assertEquals("sendto errno=49", error.message)
             assertSame(cause, error.cause)
+        }
+
+    @Test
+    fun cancellation_propagates_instead_of_becoming_a_failure() =
+        runTest {
+            // A send that suspends until cancelled, like a real socket op would.
+            var sendEntered = false
+            val suspendingBroadcaster =
+                object : UdpBroadcaster {
+                    override suspend fun send(
+                        packet: ByteArray,
+                        broadcastAddress: String,
+                        port: Int,
+                    ): WakeSendOutcome {
+                        sendEntered = true
+                        awaitCancellation()
+                    }
+                }
+            var returned: Result<Unit>? = null
+
+            val job =
+                launch {
+                    returned =
+                        performWake(
+                            broadcaster = suspendingBroadcaster,
+                            mac = "AA:BB:CC:DD:EE:FF",
+                            broadcastAddress = DEFAULT_BROADCAST_ADDRESS,
+                            port = DEFAULT_WAKE_PORT,
+                        )
+                }
+            yield() // let the launched wake start and suspend in the send
+            assertTrue(sendEntered, "the wake must be suspended in the send when cancelled")
+            job.cancelAndJoin()
+
+            // Cancelled, not "completed with a failed result": structured
+            // concurrency (and SKIE's Swift CancellationError) depend on it.
+            assertTrue(job.isCancelled)
+            assertNull(returned)
+            assertFalse(job.isActive)
         }
 }
