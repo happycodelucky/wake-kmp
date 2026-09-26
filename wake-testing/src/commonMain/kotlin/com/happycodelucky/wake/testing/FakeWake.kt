@@ -8,7 +8,7 @@
  * `Wake.asSender()`, tests wire this [FakeWake].
  *
  * [FakeWake] is a black-box double: it records every [up] call it receives and
- * returns a programmable `Result` without opening a socket or sending a
+ * returns a programmable `Outcome` without opening a socket or sending a
  * packet. Construct one, inject it where your code expects a [WakeSender], then
  * assert on what was requested. There is nothing to install or restore.
  *
@@ -19,6 +19,7 @@
 
 package com.happycodelucky.wake.testing
 
+import com.happycodelucky.outcome.Outcome
 import com.happycodelucky.wake.DEFAULT_BROADCAST_ADDRESS
 import com.happycodelucky.wake.DEFAULT_WAKE_PORT
 import com.happycodelucky.wake.WakeSender
@@ -47,7 +48,7 @@ public data class WakeCall(
  * outcome with [result] to exercise a consumer's error handling:
  *
  * ```kotlin
- * val fake = FakeWake(result = Result.failure(WakeException.NetworkError("no route to host")))
+ * val fake = FakeWake(result = Outcome.failure(WakeException.NetworkError("no route to host")))
  * val sut = MyFeature(wake = fake) // MyFeature depends on WakeSender, not Wake
  *
  * sut.wakeMyDesktop()
@@ -59,13 +60,13 @@ public data class WakeCall(
  * Thread-safe: the call counter and recorded-call list are atomic, so the fake
  * may be driven from any dispatcher.
  *
- * @param result the `Result` every [up] call returns. Defaults to success; a
+ * @param result the [Outcome] every [up] call returns. Defaults to success; a
  *   failure should hold a [com.happycodelucky.wake.WakeException], matching the
  *   real [com.happycodelucky.wake.Wake.up] contract.
  */
 @HiddenFromObjC
 public class FakeWake(
-    private val result: Result<Unit> = Result.success(Unit),
+    private val result: Outcome<Unit> = Outcome.success(Unit),
 ) : WakeSender {
     private val _callCount = atomic(0)
     private val _calls = atomic(emptyList<WakeCall>())
@@ -90,7 +91,7 @@ public class FakeWake(
         mac: String,
         broadcastAddress: String,
         port: Int,
-    ): Result<Unit> {
+    ): Outcome<Unit> {
         _callCount.incrementAndGet()
         _calls.update { it + WakeCall(mac, broadcastAddress, port) }
         return result

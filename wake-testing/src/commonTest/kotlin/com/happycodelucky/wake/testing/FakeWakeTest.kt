@@ -1,5 +1,6 @@
 package com.happycodelucky.wake.testing
 
+import com.happycodelucky.outcome.Outcome
 import com.happycodelucky.wake.DEFAULT_BROADCAST_ADDRESS
 import com.happycodelucky.wake.DEFAULT_WAKE_PORT
 import com.happycodelucky.wake.WakeException
@@ -31,7 +32,7 @@ class FakeWakeTest {
     @Test
     fun returns_the_programmed_result() =
         runTest {
-            val fake = FakeWake(result = Result.failure(WakeException.NetworkError("no route to host")))
+            val fake = FakeWake(result = Outcome.failure(WakeException.NetworkError("no route to host")))
 
             val result = fake.up("AABBCCDDEEFF")
 

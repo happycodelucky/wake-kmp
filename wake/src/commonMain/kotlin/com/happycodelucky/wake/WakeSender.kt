@@ -8,15 +8,16 @@
  * `:wake-testing`. Callers who don't need a test seam keep calling [Wake.up]
  * directly.
  *
- * Kotlin-only (`@HiddenFromObjC`): its method returns `kotlin.Result`, which has
- * no ObjC representation, and a Swift type conforming to the exported protocol
- * could not implement a hidden member. Swift consumers wanting a seam declare
- * their own protocol over the throwing `Wake.up(mac:)`.
+ * Kotlin-only (`@HiddenFromObjC`): Swift cannot construct an `Outcome` (its
+ * factories are Kotlin-only), so a Swift type could not usefully implement the
+ * protocol. Swift consumers wanting a seam declare their own protocol over
+ * `Wake.up(mac:)`.
  */
 @file:OptIn(ExperimentalObjCRefinement::class)
 
 package com.happycodelucky.wake
 
+import com.happycodelucky.outcome.Outcome
 import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
 
@@ -28,7 +29,7 @@ import kotlin.native.HiddenFromObjC
  *
  * ```kotlin
  * class WakeMyDesktop(private val wake: WakeSender = Wake.asSender()) {
- *     suspend fun run(): Result<Unit> = wake.up("AA:BB:CC:DD:EE:FF")
+ *     suspend fun run(): Outcome<Unit> = wake.up("AA:BB:CC:DD:EE:FF")
  * }
  * ```
  *
@@ -37,7 +38,7 @@ import kotlin.native.HiddenFromObjC
  * the sender can ignore this type entirely and call [Wake.up] directly.
  *
  * The single method mirrors [Wake.up] exactly — same parameters, same defaults,
- * same `Result` — so swapping a direct `Wake.up(...)` call for an injected
+ * same [Outcome] — so swapping a direct `Wake.up(...)` call for an injected
  * `sender.up(...)` is a drop-in change.
  */
 @HiddenFromObjC
@@ -59,7 +60,7 @@ public interface WakeSender {
         mac: String,
         broadcastAddress: String = DEFAULT_BROADCAST_ADDRESS,
         port: Int = DEFAULT_WAKE_PORT,
-    ): Result<Unit>
+    ): Outcome<Unit>
 }
 
 /**
@@ -79,5 +80,5 @@ private object RealWakeSender : WakeSender {
         mac: String,
         broadcastAddress: String,
         port: Int,
-    ): Result<Unit> = Wake.up(mac, broadcastAddress, port)
+    ): Outcome<Unit> = Wake.up(mac, broadcastAddress, port)
 }

@@ -6,12 +6,8 @@
 // - Show declarations: true
 
 // Library unique name: <com.happycodelucky.wake:wake>
-open annotation class com.happycodelucky.wake/InternalWakeSwiftApi : kotlin/Annotation { // com.happycodelucky.wake/InternalWakeSwiftApi|null[0]
-    constructor <init>() // com.happycodelucky.wake/InternalWakeSwiftApi.<init>|<init>(){}[0]
-}
-
 abstract interface com.happycodelucky.wake/WakeSender { // com.happycodelucky.wake/WakeSender|null[0]
-    abstract suspend fun up(kotlin/String, kotlin/String = ..., kotlin/Int = ...): kotlin/Result<kotlin/Unit> // com.happycodelucky.wake/WakeSender.up|up(kotlin.String;kotlin.String;kotlin.Int){}[0]
+    abstract suspend fun up(kotlin/String, kotlin/String = ..., kotlin/Int = ...): com.happycodelucky.outcome/Outcome<kotlin/Unit> // com.happycodelucky.wake/WakeSender.up|up(kotlin.String;kotlin.String;kotlin.Int){}[0]
 }
 
 sealed class com.happycodelucky.wake/MacLookupException : kotlin/Exception { // com.happycodelucky.wake/MacLookupException|null[0]
@@ -54,8 +50,7 @@ sealed class com.happycodelucky.wake/WakeException : kotlin/Exception { // com.h
 }
 
 final object com.happycodelucky.wake/Wake { // com.happycodelucky.wake/Wake|null[0]
-    final suspend fun up(kotlin/String, kotlin/String = ..., kotlin/Int = ...): kotlin/Result<kotlin/Unit> // com.happycodelucky.wake/Wake.up|up(kotlin.String;kotlin.String;kotlin.Int){}[0]
-    final suspend fun upOrThrow(kotlin/String, kotlin/String, kotlin/Int) // com.happycodelucky.wake/Wake.upOrThrow|upOrThrow(kotlin.String;kotlin.String;kotlin.Int){}[0]
+    final suspend fun up(kotlin/String, kotlin/String = ..., kotlin/Int = ...): com.happycodelucky.outcome/Outcome<kotlin/Unit> // com.happycodelucky.wake/Wake.up|up(kotlin.String;kotlin.String;kotlin.Int){}[0]
 }
 
 final const val com.happycodelucky.wake/DEFAULT_BROADCAST_ADDRESS // com.happycodelucky.wake/DEFAULT_BROADCAST_ADDRESS|{}DEFAULT_BROADCAST_ADDRESS[0]
@@ -66,7 +61,4 @@ final const val com.happycodelucky.wake/DEFAULT_WAKE_PORT // com.happycodelucky.
 final fun (com.happycodelucky.wake/Wake).com.happycodelucky.wake/asSender(): com.happycodelucky.wake/WakeSender // com.happycodelucky.wake/asSender|asSender@com.happycodelucky.wake.Wake(){}[0]
 
 // Targets: [macosArm64]
-final suspend fun com.happycodelucky.wake/lookupMac(kotlin/String): kotlin/Result<kotlin/String> // com.happycodelucky.wake/lookupMac|lookupMac(kotlin.String){}[0]
-
-// Targets: [macosArm64]
-final suspend fun com.happycodelucky.wake/lookupMacOrThrow(kotlin/String): kotlin/String // com.happycodelucky.wake/lookupMacOrThrow|lookupMacOrThrow(kotlin.String){}[0]
+final suspend fun com.happycodelucky.wake/lookupMac(kotlin/String): com.happycodelucky.outcome/Outcome<kotlin/String> // com.happycodelucky.wake/lookupMac|lookupMac(kotlin.String){}[0]

@@ -1,26 +1,30 @@
 ---
-title: Wake.up returns kotlin.Result in Kotlin and throws WakeError in Swift
+title: Wake.up and lookupMac return Outcome, a Swift-friendly kotlin.Result
 change: major
-description: "Replaces the WakeResult / MacLookupResult sealed types with each language's native idiom: kotlin.Result plus sealed WakeException / MacLookupException in Kotlin, and throwing functions with native WakeError / MacLookupError enums in Swift."
+description: "WakeResult and MacLookupResult are replaced by Outcome<T> (new com.happycodelucky.wake:outcome artifact): the kotlin.Result API in Kotlin, try get() / Swift.Result in Swift, with failures as sealed WakeException / MacLookupException."
 ---
 
-`WakeResult` and `MacLookupResult` are gone. Each side of the library now speaks
-its platform's own error idiom instead of a bridged sealed result.
-
-### Kotlin
-
-`Wake.up` returns `Result<Unit>`, and `lookupMac` (macOS / JVM) returns
-`Result<String>`. A failure always holds a sealed exception, so every stdlib
-`Result` operator works and a `when` over the exception is exhaustive.
+`WakeResult` and `MacLookupResult` are gone. `Wake.up` returns `Outcome<Unit>` and
+`lookupMac` (macOS / JVM) returns `Outcome<String>`. `Outcome` is a new, reusable
+result type (`com.happycodelucky.wake:outcome`, brought in transitively by `wake`)
+that wraps and mirrors `kotlin.Result`. A failure always holds a sealed exception:
+`WakeException` or `MacLookupException`.
 
 | Before | After |
 |---|---|
-| `WakeResult.Success` | `result.isSuccess` |
-| `WakeResult.InvalidMacAddress(reason)` | `WakeException.InvalidMacAddress(mac)` — `message` has the reason |
+| `WakeResult.Success` | `outcome.isSuccess` |
+| `WakeResult.InvalidMacAddress(reason)` | `WakeException.InvalidMacAddress(mac)`; `message` has the reason |
 | `WakeResult.NetworkError(message)` | `WakeException.NetworkError(message, cause)` |
-| `MacLookupResult.Found(macAddress)` | `Result.success(mac)` |
+| `MacLookupResult.Found(macAddress)` | a success holding the MAC |
 | `MacLookupResult.NotInCache` | `MacLookupException.NotInCache(ip)` |
 | `MacLookupResult.Error(message)` | `MacLookupException.InvalidIpAddress(ip)` or `.LookupFailed(message)` |
+
+### Kotlin
+
+`Outcome` has `kotlin.Result`'s API and semantics: `isSuccess`, `getOrNull`,
+`getOrThrow`, `exceptionOrNull`, `fold`, `map`, `mapCatching`, `recover`,
+`onSuccess`, `onFailure`, `getOrElse`, `getOrDefault` and `outcomeCatching {}`.
+Use `toResult()` / `toOutcome()` to convert to and from the stdlib type.
 
 ```kotlin
 // Before
@@ -42,16 +46,13 @@ Wake.up(mac)
 ```
 
 `WakeSender.up` and `FakeWake` follow suit:
-`FakeWake(result = Result.failure(WakeException.NetworkError("…")))`.
+`FakeWake(result = Outcome.failure(WakeException.NetworkError("…")))`.
 
 ### Swift
 
-`Wake.up(mac:)` no longer returns a value. It returns normally on success and
-throws a native `WakeError` enum on failure. Task cancellation arrives as
-`CancellationError`. On macOS, `lookupMac(ip:)` returns the MAC `String` and
-throws `MacLookupError`. Both error enums conform to `Error`, `Equatable` and
-`LocalizedError`, so Swift Testing can use
-`#expect(throws: WakeError.invalidMacAddress(mac: "zz"))`.
+Unwrap with `get()`. It returns on success, or throws the Kotlin exception itself
+as a Swift `Error`, so you catch it by class and switch exhaustively with
+`onEnum(of:)`. For a value, name its type. `result(as:)` gives a `Swift.Result`.
 
 ```swift
 // Before
@@ -63,13 +64,15 @@ case let .networkError(message): …
 
 // After
 do {
-    try await Wake.up(mac: mac)
-} catch let error as WakeError {
-    switch error {
-    case let .invalidMacAddress(mac): …
-    case let .networkError(message): …
+    try await Wake.up(mac: mac).get()
+} catch let e as WakeException {
+    switch onEnum(of: e) {
+    case let .invalidMacAddress(x): …   // x.mac
+    case let .networkError(x): …        // x.message
     }
 }
+
+let mac: String = try await lookupMac(ip: "192.168.1.42").get()   // macOS
 ```
 
 `WakeSender` and `FakeWake` are now Kotlin-only (hidden from the framework). A

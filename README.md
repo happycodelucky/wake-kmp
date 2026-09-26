@@ -54,6 +54,9 @@ commonTest.dependencies { implementation(libs.wake.testing) } // FakeWake
 ```
 <!-- x-release-version-end -->
 
+`wake` brings `com.happycodelucky.wake:outcome` (the `Outcome` result type) with
+it transitively.
+
 ### Swift (SPM)
 
 Add this repository as a package dependency, pinned to a release tag. The
@@ -70,9 +73,10 @@ Add this repository as a package dependency, pinned to a release tag. The
 
 ### Kotlin
 
-`Wake.up` returns the standard library's `Result<Unit>`; a failure always holds
-a sealed `WakeException`, so every `Result` operator works and a `when` over the
-exception is exhaustive:
+`Wake.up` returns `Outcome<Unit>` — a Swift-friendly mirror of the standard
+library's `Result`, with the same API (`isSuccess`, `getOrThrow`, `fold`,
+`onFailure`, `map`…, and `toResult()` for the stdlib type). A failure always
+holds a sealed `WakeException`, so a `when` over it is exhaustive:
 
 ```kotlin
 Wake.up("AA:BB:CC:DD:EE:FF")
@@ -100,24 +104,25 @@ Wake.up("aa-bb-cc-dd-ee-ff", broadcastAddress = "192.168.1.255", port = 7)
 import WakeKit
 
 do {
-    try await Wake.up(mac: "AA:BB:CC:DD:EE:FF")
+    try await Wake.up(mac: "AA:BB:CC:DD:EE:FF").get()
     print("magic packet sent")
-} catch let error as WakeError {
-    switch error {
-    case let .invalidMacAddress(mac): print("bad MAC: \(mac)")
-    case let .networkError(message): print("send failed: \(message)")
+} catch let error as WakeException {
+    switch onEnum(of: error) {
+    case let .invalidMacAddress(e): print("bad MAC: \(e.mac)")
+    case let .networkError(e): print("send failed: \(e.message)")
     }
 }
 ```
 
 The Swift module / SPM product is `WakeKit` (the framework is named with a
-"Kit" suffix so the module name doesn't collide with the `Wake` type). Swift gets
-Swift's own error idiom rather than a bridged result: `Wake.up(mac:)` throws
-`WakeError`, a native Swift enum (`Error`, `Equatable`, `LocalizedError`), so
-Swift Testing can assert `#expect(throws: WakeError.invalidMacAddress(mac: "zz"))`.
-Task cancellation arrives as `CancellationError`. (`kotlin.Result` is a value class
-that ObjC export can't represent, so the Kotlin-side `Result` API is hidden from
-Swift and a bundled Swift extension provides this throwing form.)
+"Kit" suffix so the module name doesn't collide with the `Wake` type).
+`Wake.up(mac:)` returns the same `Outcome`; unwrap it with `get()`, which returns
+on success and throws the Kotlin `WakeException` itself as a Swift `Error` —
+catch it by class and switch exhaustively with `onEnum(of:)`, or assert
+`#expect(throws: WakeException.InvalidMacAddress.self)` in Swift Testing. For a
+value, name the type: `let mac: String = try outcome.get()` (or
+`get(as: String.self)`); `outcome.result(as:)` gives a `Swift.Result`. Task
+cancellation arrives as `CancellationError`.
 
 ### Looking up a MAC from an IP (macOS + JVM desktop only)
 
@@ -126,7 +131,7 @@ reads the host's ARP cache to resolve one — capture the MAC while the device i
 awake, then wake it by MAC later (ARP entries age out once a host goes idle).
 
 ```kotlin
-lookupMac("192.168.1.42")                       // Result<String>
+lookupMac("192.168.1.42")                       // Outcome<String>
     .onSuccess { mac -> Wake.up(mac) }          // feeds straight into up()
     .onFailure { e ->
         if (e is MacLookupException.NotInCache) println("no ARP entry — ping it first")
@@ -134,10 +139,11 @@ lookupMac("192.168.1.42")                       // Result<String>
 ```
 
 ```swift
-// A global async function (not a Wake member), throwing MacLookupError:
+// A global async function (not a Wake member):
 do {
-    try await Wake.up(mac: try await lookupMac(ip: "192.168.1.42"))
-} catch MacLookupError.notInCache {
+    let mac: String = try await lookupMac(ip: "192.168.1.42").get()
+    try await Wake.up(mac: mac).get()
+} catch is MacLookupException.NotInCache {
     print("no ARP entry — ping it first")
 }
 ```
@@ -179,7 +185,7 @@ the `com.apple.developer.networking.multicast` entitlement.
 Because `Wake.up(...)` is a static call, a feature you want to unit-test depends
 on the small `WakeSender` interface instead — production wires `Wake.asSender()`,
 tests wire `FakeWake` from `:wake-testing`. `FakeWake` records every `up` call
-and returns a programmable `Result` without opening a socket:
+and returns a programmable `Outcome` without opening a socket:
 
 ```kotlin
 // Production: WakeMyDesktop(wake = Wake.asSender())
@@ -188,7 +194,7 @@ class WakeMyDesktop(private val wake: WakeSender = Wake.asSender()) {
 }
 
 // Test:
-val fake = FakeWake(result = Result.failure(WakeException.NetworkError("no route to host")))
+val fake = FakeWake(result = Outcome.failure(WakeException.NetworkError("no route to host")))
 val result = WakeMyDesktop(wake = fake).run()
 assertIs<WakeException.NetworkError>(result.exceptionOrNull())
 assertEquals("AA:BB:CC:DD:EE:FF", fake.lastCall?.mac)
@@ -196,7 +202,7 @@ assertEquals("AA:BB:CC:DD:EE:FF", fake.lastCall?.mac)
 
 Code that doesn't need a test seam can ignore `WakeSender` and call `Wake.up(...)`
 directly. `WakeSender` and `FakeWake` are Kotlin-only; in Swift, declare your own
-protocol over the throwing `Wake.up(mac:)`.
+protocol over `Wake.up(mac:)`.
 
 ## Sample CLI
 

@@ -1,35 +1,37 @@
 /*
  * Wake — public API surface (CLAUDE.md §8).
  *
- * Two audiences, each given its own native error idiom:
+ * [Wake.up] returns `Outcome<Unit>` (from `:outcome`), a Swift-friendly mirror of
+ * `kotlin.Result`. A failure always holds a [WakeException] — a sealed hierarchy,
+ * so a Kotlin `when` over it is exhaustive and Swift switches on it with SKIE's
+ * `onEnum(of:)`.
  *
- * - **Kotlin** gets the standard library's `kotlin.Result<Unit>` from [Wake.up],
- *   whose failure is always a [WakeException] (a sealed hierarchy, so a `when`
- *   over it is exhaustive). `isSuccess`, `getOrThrow`, `onFailure`, `fold`,
- *   `exceptionOrNull`… all work unchanged, and tests assert on it like any other
- *   `Result`.
- * - **Swift** never sees `kotlin.Result` — it is a value class, which ObjC export
- *   erases to an untyped `Any?`, so [Wake.up] is `@HiddenFromObjC`. Instead the
- *   `__up` bridge ([Wake.upOrThrow]) throws the [WakeException] across the
- *   boundary, and the bundled `src/appleMain/swift/Wake+Up.swift` re-exposes it as
- *   `static func up(mac:) async throws`, rethrowing a native Swift `WakeError`
- *   enum (`Error`, `Equatable`, `LocalizedError`).
+ * - **Kotlin** gets the whole `Result` API on it (`isSuccess`, `getOrThrow`,
+ *   `fold`, `onFailure`, `map`…), and `toResult()` for the stdlib type.
+ * - **Swift** unwraps it with `:outcome`'s bundled `get()`: success returns,
+ *   failure throws the [WakeException] itself as a Swift `Error`.
+ *
+ * `up` never throws across the boundary; SKIE still renders the suspend call as
+ * `async throws`, but that `throws` only carries cancellation.
  *
  * Wake is stateless and one-shot: there is no observer lifecycle and no
  * `AutoCloseable`. Each [Wake.up] call builds the magic packet, opens a UDP
  * broadcast socket, sends, and closes it. Tests inject a `FakeWake`
  * (in `:wake-testing`) by constructor; there is no global override.
+ *
+ * `Wake` is a Kotlin `object` so the call site reads as the `Wake.up(...)` pun
+ * in both languages. SKIE renders the object's single instance as `Wake.shared`
+ * in Swift; a hand-written Swift extension in `src/appleMain/swift/` re-exposes
+ * it as the static `Wake.up(mac:)`.
  */
 package com.happycodelucky.wake
 
+import com.happycodelucky.outcome.Outcome
+import com.happycodelucky.outcome.toOutcome
 import com.happycodelucky.wake.internal.defaultBroadcaster
 import com.happycodelucky.wake.internal.performWake
-import kotlin.coroutines.cancellation.CancellationException
 import kotlin.experimental.ExperimentalObjCName
-import kotlin.experimental.ExperimentalObjCRefinement
-import kotlin.native.HiddenFromObjC
 import kotlin.native.ObjCName
-import kotlin.native.ShouldRefineInSwift
 
 /**
  * Default Wake-on-LAN UDP port.
@@ -87,21 +89,17 @@ public const val DEFAULT_BROADCAST_ADDRESS: String = "255.255.255.255"
  *
  * ### Swift
  *
- * The bundled `Wake.up(mac:)` extension (in `src/appleMain/swift/`) throws a
- * native `WakeError` enum:
- *
  * ```swift
  * do {
- *     try await Wake.up(mac: "AA:BB:CC:DD:EE:FF")
- * } catch let error as WakeError {
- *     switch error {
- *     case .invalidMacAddress(let mac): print("bad MAC: \(mac)")
- *     case .networkError(let message): print("send failed: \(message)")
+ *     try await Wake.up(mac: "AA:BB:CC:DD:EE:FF").get()
+ * } catch let error as WakeException {
+ *     switch onEnum(of: error) {
+ *     case let .invalidMacAddress(e): print("bad MAC: \(e.mac)")
+ *     case let .networkError(e): print("send failed: \(e.message)")
  *     }
  * }
  * ```
  */
-@OptIn(ExperimentalObjCName::class, ExperimentalObjCRefinement::class)
 public object Wake {
     /**
      * Build the magic packet for [mac] and broadcast it over UDP.
@@ -111,7 +109,7 @@ public object Wake {
      * case-insensitive.
      *
      * Never throws (other than coroutine cancellation): every failure is a
-     * [Result.failure] holding a [WakeException] —
+     * failed [Outcome] holding a [WakeException] —
      * [WakeException.InvalidMacAddress] for unparseable input, or
      * [WakeException.NetworkError] when the socket send fails.
      *
@@ -120,52 +118,25 @@ public object Wake {
      * `NSLocalNetworkUsageDescription` is one way a success can still mean
      * nothing left the device (see [Wake]).
      *
-     * Hidden from Swift, where `kotlin.Result` has no representation; Swift
-     * calls the bundled `Wake.up(mac:)` instead (see [upOrThrow]).
-     *
      * @param mac the target device's hardware (MAC) address.
      * @param broadcastAddress the IPv4 broadcast target. Defaults to the
      *   limited broadcast [DEFAULT_BROADCAST_ADDRESS]; pass a subnet-directed
      *   broadcast to cross a router that forwards directed broadcasts.
      * @param port the destination UDP port. Defaults to [DEFAULT_WAKE_PORT].
-     * @return success when the packet was sent, otherwise a failure whose
-     *   exception is a [WakeException].
+     * @return success when the packet was sent, otherwise a failure holding a
+     *   [WakeException].
      */
-    @HiddenFromObjC
+    @OptIn(ExperimentalObjCName::class)
+    @ObjCName(swiftName = "up")
     public suspend fun up(
         mac: String,
         broadcastAddress: String = DEFAULT_BROADCAST_ADDRESS,
         port: Int = DEFAULT_WAKE_PORT,
-    ): Result<Unit> =
+    ): Outcome<Unit> =
         performWake(
             broadcaster = defaultBroadcaster(),
             mac = mac,
             broadcastAddress = broadcastAddress,
             port = port,
-        )
-
-    /**
-     * Swift bridge for [up]: the same send, with a failure thrown rather than
-     * returned.
-     *
-     * Exists only because `kotlin.Result` cannot cross ObjC export. It renders
-     * in Swift as the refined `Wake.shared.__up(mac:…)`, which the bundled
-     * `Wake.up(mac:)` wraps to rethrow the [WakeException] as a Swift `WakeError`.
-     * Kotlin callers use [up] (it is opt-in-gated behind [InternalWakeSwiftApi]).
-     *
-     * Deliberately has no default arguments: SKIE does not carry `@Throws` onto
-     * the overloads it generates for defaults (SKIE #151), so throwing through
-     * one would abort the process. The Swift wrapper supplies the defaults.
-     *
-     * @throws WakeException when the MAC is unparseable or the send fails.
-     */
-    @InternalWakeSwiftApi
-    @ShouldRefineInSwift
-    @ObjCName(swiftName = "up")
-    @Throws(WakeException::class, CancellationException::class)
-    public suspend fun upOrThrow(
-        mac: String,
-        broadcastAddress: String,
-        port: Int,
-    ): Unit = up(mac, broadcastAddress, port).getOrThrow()
+        ).toOutcome()
 }

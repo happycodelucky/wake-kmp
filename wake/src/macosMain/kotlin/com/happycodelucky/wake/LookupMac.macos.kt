@@ -4,28 +4,24 @@
  * Declared in `macosMain` (not `commonMain`): reading the ARP cache is only
  * possible on macOS and the JVM desktop. A top-level function rather than a
  * `Wake` member — a concrete `object` cannot gain members from a platform source
- * set. Kotlin gets a `Result<String>` ([lookupMac], hidden from ObjC); Swift gets
- * the throwing bridge ([lookupMacOrThrow]) wrapped by the bundled
- * `src/macosMain/swift/LookupMac.swift` as the global
- * `let mac = try await lookupMac(ip: "192.168.1.42")`, throwing `MacLookupError`. (The matching JVM slice
+ * set — so SKIE renders it as a global Swift async function:
+ * `let mac: String = try await lookupMac(ip: "192.168.1.42").get()`. (The matching JVM slice
  * declares its own identically-named top-level `lookupMac`; disjoint compilations,
  * no clash.)
  *
  * iOS deliberately has no such function: the kernel returns a spoofed MAC there,
  * so calling `lookupMac` on iOS is a compile error, not a runtime failure.
  */
-@file:OptIn(ExperimentalObjCName::class, ExperimentalObjCRefinement::class)
+@file:OptIn(ExperimentalObjCName::class)
 
 package com.happycodelucky.wake
 
+import com.happycodelucky.outcome.Outcome
+import com.happycodelucky.outcome.toOutcome
 import com.happycodelucky.wake.internal.SysctlArpResolver
 import com.happycodelucky.wake.internal.performLookup
-import kotlin.coroutines.cancellation.CancellationException
 import kotlin.experimental.ExperimentalObjCName
-import kotlin.experimental.ExperimentalObjCRefinement
-import kotlin.native.HiddenFromObjC
 import kotlin.native.ObjCName
-import kotlin.native.ShouldRefineInSwift
 
 /**
  * Look up the hardware (MAC) address for [ip] in the macOS host's ARP cache.
@@ -43,13 +39,11 @@ import kotlin.native.ShouldRefineInSwift
  *
  * ### Swift
  *
- * Hidden from ObjC; Swift calls the bundled global `lookupMac(ip:)`, which
- * throws a native `MacLookupError`:
- *
  * ```swift
  * do {
- *     try await Wake.up(mac: try await lookupMac(ip: "192.168.1.42"))
- * } catch MacLookupError.notInCache {
+ *     let mac: String = try await lookupMac(ip: "192.168.1.42").get()
+ *     try await Wake.up(mac: mac).get()
+ * } catch is MacLookupException.NotInCache {
  *     print("no ARP entry — ping it first")
  * }
  * ```
@@ -57,18 +51,6 @@ import kotlin.native.ShouldRefineInSwift
  * @param ip the target device's IPv4 address, in dotted-quad form.
  * @return the resolved MAC, or a failure holding a [MacLookupException].
  */
-@HiddenFromObjC
-public suspend fun lookupMac(ip: String): Result<String> = performLookup(resolver = SysctlArpResolver(), ip = ip)
-
-/**
- * Swift bridge for [lookupMac]: the same lookup, with a failure thrown rather
- * than returned. Renders in Swift as the refined `__lookupMac(ip:)`, wrapped by
- * the bundled global `lookupMac(ip:)`. Kotlin callers use [lookupMac].
- *
- * @throws MacLookupException when the IP is invalid, not cached, or the read fails.
- */
-@InternalWakeSwiftApi
-@ShouldRefineInSwift
 @ObjCName(swiftName = "lookupMac")
-@Throws(MacLookupException::class, CancellationException::class)
-public suspend fun lookupMacOrThrow(ip: String): String = lookupMac(ip).getOrThrow()
+public suspend fun lookupMac(ip: String): Outcome<String> =
+    performLookup(resolver = SysctlArpResolver(), ip = ip).toOutcome()

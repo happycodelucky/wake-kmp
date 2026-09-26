@@ -11,6 +11,8 @@
  */
 package com.happycodelucky.wake
 
+import com.happycodelucky.outcome.Outcome
+import com.happycodelucky.outcome.toOutcome
 import com.happycodelucky.wake.internal.JvmArpResolver
 import com.happycodelucky.wake.internal.performLookup
 
@@ -23,7 +25,7 @@ import com.happycodelucky.wake.internal.performLookup
  * failure for an idle host — contact it first (e.g. a ping) to populate the cache.
  *
  * Never throws (other than coroutine cancellation): an unparseable [ip], a
- * missing entry, or an OS read error is a failed `Result` holding a
+ * missing entry, or an OS read error is a failed [Outcome] holding a
  * [MacLookupException]. A resolved MAC is in the canonical `AA:BB:CC:DD:EE:FF`
  * form that [Wake.up] accepts, so it can be passed straight to a wake.
  *
@@ -36,4 +38,5 @@ import com.happycodelucky.wake.internal.performLookup
  * @param ip the target device's IPv4 address, in dotted-quad form.
  * @return the resolved MAC, or a failure holding a [MacLookupException].
  */
-public suspend fun lookupMac(ip: String): Result<String> = performLookup(resolver = JvmArpResolver(), ip = ip)
+public suspend fun lookupMac(ip: String): Outcome<String> =
+    performLookup(resolver = JvmArpResolver(), ip = ip).toOutcome()

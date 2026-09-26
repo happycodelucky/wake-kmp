@@ -1,9 +1,8 @@
 /*
- * Wake — the failure half of `lookupMac`'s `Result` (CLAUDE.md §8).
+ * Wake — the failure half of `lookupMac`'s `Outcome` (CLAUDE.md §8).
  *
  * Mirrors [WakeException]: a sealed `Exception` hierarchy carried by
- * `kotlin.Result<String>` in Kotlin, and mapped by the bundled macOS Swift onto
- * a native `MacLookupError` enum.
+ * `Outcome<String>`, caught as itself in Swift.
  *
  * There is deliberately NO `Unsupported` case. ARP-cache reads are impossible on
  * iOS (the kernel returns a spoofed address) and on modern Android (`/proc/net/arp`
@@ -16,7 +15,7 @@ package com.happycodelucky.wake
 
 /**
  * Why an ARP-cache MAC lookup (`lookupMac`, macOS and JVM desktop) produced no
- * address. Always the exception inside a failed `Result<String>` from
+ * address. Always the exception inside a failed `Outcome<String>` from
  * `lookupMac`.
  */
 public sealed class MacLookupException(

@@ -1,64 +1,40 @@
 //
-// Wake — the Swift face of `Wake.up`.
+// Wake — Swift-side ergonomic sweetener for `Wake.up(mac:)`.
 //
-// Kotlin's `Wake.up` returns `kotlin.Result<Unit>`, a value class that ObjC export
-// erases to an untyped `Any?`, so it is `@HiddenFromObjC`. What Swift sees instead
-// is the refined throwing bridge `Wake.shared.__up(mac:broadcastAddress:port:)`
-// (Kotlin `upOrThrow`, `@ShouldRefineInSwift`), which throws the Kotlin
-// `WakeException` wrapped in an `NSError`. This file re-exposes it as the static
-// `Wake.up(mac:)` pun and rethrows that exception as the native `WakeError` enum
-// below — so Swift callers write ordinary `do`/`try`/`catch`, and tests use
-// `#expect(throws: WakeError.invalidMacAddress(mac: "zz"))`.
+// `Wake` is a Kotlin `object` (a singleton), so SKIE renders it on the Swift
+// side as a `WakeKit.Wake` class whose one instance is reached through a
+// generated `shared` accessor. The raw call site would read:
+//
+//     try await Wake.shared.up(mac: "AA:BB:CC:DD:EE:FF", broadcastAddress: …, port: …).get()
+//
+// This extension adds a *static* `up(...)` on `Wake` so the public surface for
+// Swift consumers is simply the intended pun, matching Kotlin's
+// `Wake.up("AA:BB:CC:DD:EE:FF")` one-for-one:
+//
+//     try await Wake.up(mac: "AA:BB:CC:DD:EE:FF").get()
+//
+// The result is `Outcome<KotlinUnit>` (from `:outcome`); `.get()` — from
+// `:outcome`'s own bundled Swift, compiled into this same framework because WakeKit
+// `export`s `:outcome` — returns on success and throws the `WakeException` itself
+// on failure. Nothing error-specific lives here.
 //
 // This file lives in `:wake`'s `src/appleMain/swift/`. SKIE's Swift bundling
 // compiles it, at framework link, into the same module (`WakeKit`) as the
-// SKIE-generated Swift. That requires `skie.swiftBundling.enabled = true` (set in
-// the convention plugin) — with bundling off SKIE silently skips this file and
-// `Wake.up(mac:)` / `WakeError` don't exist.
+// SKIE-generated Swift wrappers. That requires `skie.swiftBundling.enabled = true`
+// (set in the convention plugin) — with bundling off SKIE silently skips this file
+// and `Wake.up(mac:)` doesn't exist.
 //
 // Bridging facts, verified against the built framework:
-//   - `@Throws` exceptions arrive as an `NSError` whose `kotlinException` holds the
-//     Kotlin object; a plain `catch let e as WakeException` would not match.
-//   - SKIE surfaces coroutine cancellation as Swift `CancellationError`, which is
-//     rethrown untouched — hence untyped `throws` rather than `throws(WakeError)`
-//     (SE-0413 also recommends untyped throws for library API).
-//   - The bridge has no Kotlin default arguments (SKIE #151: `@Throws` is not
-//     carried onto default-argument overloads), so the defaults live here.
+//   - The singleton accessor is exactly `Wake.shared`.
+//   - Kotlin `suspend fun up` renders `async throws`; the `throws` only carries
+//     task cancellation (`up` reports failures in the `Outcome`), so this
+//     extension is `async throws` and forwards with `try await`.
+//   - Kotlin `Int` bridges to `Swift.Int32`, so `port` is `Int32`; the defaults
 //     `"255.255.255.255"` and `9` match `DEFAULT_BROADCAST_ADDRESS` /
-//     `DEFAULT_WAKE_PORT`; Kotlin `Int` bridges to `Int32`.
+//     `DEFAULT_WAKE_PORT`.
 //
 
 import Foundation
-
-/// Why ``Wake/up(mac:broadcastAddress:port:)`` failed.
-///
-/// The native Swift mirror of the Kotlin `WakeException` hierarchy.
-public enum WakeError: Error, Equatable, Hashable, Sendable {
-    /// `mac` could not be parsed into a 48-bit address. Carries the input verbatim.
-    case invalidMacAddress(mac: String)
-
-    /// The socket send failed. Carries the platform error message or errno description.
-    case networkError(message: String)
-}
-
-extension WakeError: LocalizedError {
-    public var errorDescription: String? {
-        switch self {
-        case let .invalidMacAddress(mac): "could not parse MAC address: \"\(mac)\""
-        case let .networkError(message): message
-        }
-    }
-}
-
-extension WakeError {
-    /// Maps the Kotlin exception case-for-case (exhaustive via SKIE's `onEnum(of:)`).
-    init(_ exception: WakeException) {
-        switch onEnum(of: exception) {
-        case let .invalidMacAddress(e): self = .invalidMacAddress(mac: e.mac)
-        case let .networkError(e): self = .networkError(message: e.message)
-        }
-    }
-}
 
 extension Wake {
     /// Build the Wake-on-LAN magic packet for `mac` and broadcast it over UDP.
@@ -67,14 +43,14 @@ extension Wake {
     /// (`aa-bb-cc-dd-ee-ff`), or no separators (`aabbccddeeff`); parsing is
     /// case-insensitive.
     ///
-    /// Returning normally means the packet was handed to the OS for broadcast —
-    /// Wake-on-LAN is fire-and-forget, so it does not mean the device woke.
-    ///
     /// ```swift
     /// do {
-    ///     try await Wake.up(mac: "AA:BB:CC:DD:EE:FF")
-    /// } catch let error as WakeError {
-    ///     print(error.localizedDescription)
+    ///     try await Wake.up(mac: "AA:BB:CC:DD:EE:FF").get()
+    /// } catch let error as WakeException {
+    ///     switch onEnum(of: error) {
+    ///     case let .invalidMacAddress(e): print("bad MAC: \(e.mac)")
+    ///     case let .networkError(e): print("send failed: \(e.message)")
+    ///     }
     /// }
     /// ```
     ///
@@ -85,20 +61,15 @@ extension Wake {
     ///     `192.168.1.255`) to cross a router that forwards directed broadcasts.
     ///   - port: The destination UDP port. Defaults to `9`, the most common
     ///     Wake-on-LAN convention.
-    /// - Throws: ``WakeError`` when `mac` is unparseable or the send fails, or
-    ///   `CancellationError` if the task is cancelled.
+    /// - Returns: A successful `Outcome` when the packet was handed to the OS for
+    ///   broadcast (not a delivery guarantee), or a failed one holding a
+    ///   `WakeException`. Unwrap with `get()`.
+    /// - Throws: Only `CancellationError`, if the task is cancelled.
     public static func up(
         mac: String,
         broadcastAddress: String = "255.255.255.255",
         port: Int32 = 9
-    ) async throws {
-        do {
-            try await Wake.shared.__up(mac: mac, broadcastAddress: broadcastAddress, port: port)
-        } catch let error as NSError {
-            if let exception = error.kotlinException as? WakeException {
-                throw WakeError(exception)
-            }
-            throw error
-        }
+    ) async throws -> Outcome<KotlinUnit> {
+        try await Wake.shared.up(mac: mac, broadcastAddress: broadcastAddress, port: port)
     }
 }

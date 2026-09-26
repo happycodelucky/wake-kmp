@@ -37,13 +37,13 @@ gh     = "2.101.0"                     # release.yml uses gh (`gh release view`/
 
 # --- check / lint / format -------------------------------------------------
 
-# Both published modules are listed explicitly. Gradle's `check` is
-# per-project — `:wake:check` alone never runs `:wake-testing`'s test suite.
+# Every published module is listed explicitly. Gradle's `check` is
+# per-project — `:wake:check` alone never runs `:outcome`'s or `:wake-testing`'s tests.
 # `check` also runs the public-API/ABI gate (`checkKotlinAbi`) — it fails if the
 # public surface changed without a deliberate `mise run api:dump`.
 [tasks.check]
-description = "Full local check — what CI runs: ktlint + detekt + the API/ABI check + every unit test, both modules."
-run = "./gradlew :wake:check :wake-testing:check"
+description = "Full local check — what CI runs: ktlint + detekt + the API/ABI check + every unit test, all modules."
+run = "./gradlew :outcome:check :wake:check :wake-testing:check"
 
 # --- test ------------------------------------------------------------------
 # `test` is the fast inner loop (macOS arm64 only — covers commonTest). The
@@ -51,51 +51,51 @@ run = "./gradlew :wake:check :wake-testing:check"
 # test:android; macOS runs the Apple targets via `check`).
 
 [tasks.test]
-description = "Fast inner-loop tests — macOS arm64 only (covers commonTest), both modules."
-run = "./gradlew :wake:macosArm64Test :wake-testing:macosArm64Test"
+description = "Fast inner-loop tests — macOS arm64 only (covers commonTest), all modules."
+run = "./gradlew :outcome:macosArm64Test :wake:macosArm64Test :wake-testing:macosArm64Test"
 
 [tasks."test:jvm"]
-description = "JVM unit tests (fastest — no K/N compile; covers commonTest + the live jvmShared loopback test), both modules."
-run = "./gradlew :wake:jvmTest :wake-testing:jvmTest"
+description = "JVM unit tests (fastest — no K/N compile; covers commonTest + the live jvmShared loopback test), all modules."
+run = "./gradlew :outcome:jvmTest :wake:jvmTest :wake-testing:jvmTest"
 
 [tasks."test:android"]
-description = "Android host unit tests, both modules."
-run = "./gradlew :wake:testAndroidHostTest :wake-testing:testAndroidHostTest"
+description = "Android host unit tests, all modules."
+run = "./gradlew :outcome:testAndroidHostTest :wake:testAndroidHostTest :wake-testing:testAndroidHostTest"
 
 [tasks."test:ios"]
-description = "iOS simulator arm64 tests (slower — boots a simulator), both modules."
-run = "./gradlew :wake:iosSimulatorArm64Test :wake-testing:iosSimulatorArm64Test"
+description = "iOS simulator arm64 tests (slower — boots a simulator), all modules."
+run = "./gradlew :outcome:iosSimulatorArm64Test :wake:iosSimulatorArm64Test :wake-testing:iosSimulatorArm64Test"
 
 [tasks."test:apple"]
-description = "Both Apple test targets (macOS arm64 + iOS simulator arm64), both modules."
+description = "Both Apple test targets (macOS arm64 + iOS simulator arm64), all modules."
 depends = ["test", "test:ios"]
 
 [tasks."test:all"]
-description = "Every test target across every platform, both modules."
+description = "Every test target across every platform, all modules."
 depends = ["test", "test:ios", "test:android", "test:jvm"]
 
 [tasks.lint]
-description = "ktlint + detekt only (no tests), both published modules."
-run = "./gradlew :wake:ktlintCheck :wake:detekt :wake-testing:ktlintCheck :wake-testing:detekt"
+description = "ktlint + detekt only (no tests), all published modules."
+run = "./gradlew :outcome:ktlintCheck :outcome:detekt :wake:ktlintCheck :wake:detekt :wake-testing:ktlintCheck :wake-testing:detekt"
 
 [tasks.format]
-description = "ktlint auto-fix, both published modules."
-run = "./gradlew :wake:ktlintFormat :wake-testing:ktlintFormat"
+description = "ktlint auto-fix, all published modules."
+run = "./gradlew :outcome:ktlintFormat :wake:ktlintFormat :wake-testing:ktlintFormat"
 
 # --- public API / ABI ------------------------------------------------------
-# The committed dump under wake/api/ is the reference for the public surface.
+# The committed dumps under wake/api/ and outcome/api/ are the reference for the public surface.
 # `api:check` runs as part of `check` (and CI) — it fails if the public API
 # changed without a deliberate `api:dump`. Review the api/ diff like code.
-# Only `:wake` is pinned; `:wake-testing` opts out of ABI validation (it ships
+# `:wake` and `:outcome` are pinned; `:wake-testing` opts out of ABI validation (it ships
 # test fakes whose surface is meant to flex — see wake-testing/build.gradle.kts).
 
 [tasks."api:check"]
-description = "Verify the public API/ABI of :wake matches the committed dump (also runs inside `check`)."
-run = "./gradlew :wake:checkKotlinAbi"
+description = "Verify the public API/ABI of :wake and :outcome match the committed dumps (also runs inside `check`)."
+run = "./gradlew :outcome:checkKotlinAbi :wake:checkKotlinAbi"
 
 [tasks."api:dump"]
-description = "Regenerate the committed public API/ABI dump for :wake after an INTENTIONAL public change. Review + commit the api/ diff."
-run = "./gradlew :wake:updateKotlinAbi"
+description = "Regenerate the committed public API/ABI dumps for :wake and :outcome after an INTENTIONAL public change. Review + commit the api/ diff."
+run = "./gradlew :outcome:updateKotlinAbi :wake:updateKotlinAbi"
 
 # --- build health ----------------------------------------------------------
 
@@ -244,7 +244,7 @@ run = "./gradlew versionCatalogUpdate --no-configuration-cache"
 
 [tasks.ci]
 description = "Run the exact CI gate locally: full check + release WakeKit.xcframework."
-run = "./gradlew :wake:check :wake-testing:check :wake:assembleWakeKitXCFramework"
+run = "./gradlew :outcome:check :wake:check :wake-testing:check :wake:assembleWakeKitXCFramework"
 
 # --- housekeeping ----------------------------------------------------------
 

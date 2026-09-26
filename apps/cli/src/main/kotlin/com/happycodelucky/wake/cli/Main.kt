@@ -8,6 +8,7 @@
  */
 package com.happycodelucky.wake.cli
 
+import com.happycodelucky.outcome.fold
 import com.happycodelucky.wake.MacLookupException
 import com.happycodelucky.wake.Wake
 import com.happycodelucky.wake.WakeException
