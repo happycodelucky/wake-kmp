@@ -391,6 +391,11 @@ forbidden.** Two channels, no overlap:
 
 - **Maven Central** (vanniktech `gradle-maven-publish-plugin`) — Android AAR,
   `kotlinMultiplatform` metadata, per-target klibs. For Gradle/KMP consumers.
+  Every published jar and the AAR also carry `llms.txt` + `llms-full.txt` (the
+  module's public API with KDoc, for AI tools) under
+  `META-INF/<groupId>/<artifactId>/`, generated from Dokka by any publishing
+  build (LESSONS D-005). `mise run llms:generate` previews them; `mise run
+  llms:check` verifies a local publish (CI's Apple leg runs it).
 - **GitHub Releases** (KMMBridge) — the SKIE-enhanced `WakeKit.xcframework` zip
   for pure-Swift SPM consumers, referenced from the root `Package.swift` by URL +
   sha256 checksum.

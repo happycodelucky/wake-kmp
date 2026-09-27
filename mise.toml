@@ -235,6 +235,18 @@ description = "Publish both modules to the local Maven repo (~/.m2) as the next 
 # patch — as a -SNAPSHOT, which a consumer opts into explicitly.
 run = './gradlew publishToMavenLocal -Pversion="$(python3 scripts/changeset.py snapshot)"'
 
+[tasks."llms:generate"]
+description = "Write each module's llms.txt + llms-full.txt (its public API, from Dokka) to <module>/build/llms/ to preview them."
+# Every published jar and AAR carries this pair under
+# META-INF/<groupId>/<artifactId>/ — packed only by builds that publish
+# (wake.publish), so check/test runs never pay for Dokka.
+run = "./gradlew :wake:generateLlmsTxt :wake-testing:generateLlmsTxt"
+
+[tasks."llms:check"]
+description = "publish:local, then verify every published jar and AAR carries llms.txt + llms-full.txt (CI's Apple leg runs this)."
+depends = ["publish:local"]
+run = 'sh scripts/check-llms.sh "$(python3 scripts/changeset.py snapshot)"'
+
 # --- dependencies ----------------------------------------------------------
 # Nothing bumps dependencies automatically: run these, review the diff, open a PR.
 
