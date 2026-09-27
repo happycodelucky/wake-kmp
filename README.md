@@ -54,8 +54,11 @@ commonTest.dependencies { implementation(libs.wake.testing) } // FakeWake
 ```
 <!-- x-release-version-end -->
 
-`wake` brings `com.happycodelucky.wake:outcome` (the `Outcome` result type) with
-it transitively.
+`wake` brings [KotlinResult](https://github.com/happycodelucky/kotlinresult-kmp)
+(`com.happycodelucky.kotlinresult:kotlinresult`, its `Result` type) with it
+transitively. If you build your own Apple framework that links `wake`, also
+`export` KotlinResult into it — see
+[KotlinResult's setup notes](https://github.com/happycodelucky/kotlinresult-kmp#using-it-from-a-kmp-library-required-setup).
 
 ### Swift (SPM)
 
@@ -73,10 +76,12 @@ Add this repository as a package dependency, pinned to a release tag. The
 
 ### Kotlin
 
-`Wake.up` returns `Outcome<Unit>` — a Swift-friendly mirror of the standard
-library's `Result`, with the same API (`isSuccess`, `getOrThrow`, `fold`,
-`onFailure`, `map`…, and `toResult()` for the stdlib type). A failure always
-holds a sealed `WakeException`, so a `when` over it is exhaustive:
+`Wake.up` returns `Result<Unit>` from
+[KotlinResult](https://github.com/happycodelucky/kotlinresult-kmp) — a
+Swift-friendly mirror of the standard library's `Result`, with the same API as
+members (`isSuccess`, `getOrThrow`, `fold`, `onFailure`, `map`…, and
+`toStdlibResult()` for the stdlib type). A failure always holds a sealed
+`WakeException`, so a `when` over it is exhaustive:
 
 ```kotlin
 Wake.up("AA:BB:CC:DD:EE:FF")
@@ -116,14 +121,15 @@ do {
 
 The Swift module / SPM product is `WakeKit` (the framework is named with a
 "Kit" suffix so the module name doesn't collide with the `Wake` type).
-`Wake.up(mac:)` returns the same `Outcome`; unwrap it with `get()`, which returns
+`Wake.up(mac:)` returns the same result, as `KotlinResult<KotlinUnit>`; unwrap it
+with `get()`, which returns
 on success and throws the Kotlin `WakeException` itself as a Swift `Error` —
 catch it by class and switch exhaustively with `onEnum(of:)`, or assert
 `#expect(throws: WakeException.InvalidMacAddress.self)` in Swift Testing. For a
-value, name the type: `let mac: String = try outcome.get()` (or
-`get(as: String.self)`); `outcome.result(as:)` gives a `Swift.Result`, and
-`Outcome<NSString>(value:)` / `Outcome<KotlinUnit>(failure:)` build one (handy in
-Swift test fakes). Task cancellation arrives as `CancellationError`.
+value, name the type: `let mac: String = try result.get()` (or
+`get(as: String.self)`); `result.result(as:)` gives a `Swift.Result`, and
+`KotlinResult<NSString>(value:)` / `KotlinResult<KotlinUnit>(failure:)` build one
+(handy in Swift test fakes). Task cancellation arrives as `CancellationError`.
 
 ### Looking up a MAC from an IP (macOS + JVM desktop only)
 
@@ -132,7 +138,7 @@ reads the host's ARP cache to resolve one — capture the MAC while the device i
 awake, then wake it by MAC later (ARP entries age out once a host goes idle).
 
 ```kotlin
-lookupMac("192.168.1.42")                       // Outcome<String>
+lookupMac("192.168.1.42")                       // Result<String>
     .onSuccess { mac -> Wake.up(mac) }          // feeds straight into up()
     .onFailure { e ->
         if (e is MacLookupException.NotInCache) println("no ARP entry — ping it first")
@@ -186,16 +192,18 @@ the `com.apple.developer.networking.multicast` entitlement.
 Because `Wake.up(...)` is a static call, a feature you want to unit-test depends
 on the small `WakeSender` interface instead — production wires `Wake.asSender()`,
 tests wire `FakeWake` from `:wake-testing`. `FakeWake` records every `up` call
-and returns a programmable `Outcome` without opening a socket:
+and returns a programmable `Result` without opening a socket:
 
 ```kotlin
+import com.happycodelucky.kotlinresult.Result // not kotlin.Result
+
 // Production: WakeMyDesktop(wake = Wake.asSender())
 class WakeMyDesktop(private val wake: WakeSender = Wake.asSender()) {
     suspend fun run() = wake.up("AA:BB:CC:DD:EE:FF")
 }
 
 // Test:
-val fake = FakeWake(result = Outcome.failure(WakeException.NetworkError("no route to host")))
+val fake = FakeWake(result = Result.failure(WakeException.NetworkError("no route to host")))
 val result = WakeMyDesktop(wake = fake).run()
 assertIs<WakeException.NetworkError>(result.exceptionOrNull())
 assertEquals("AA:BB:CC:DD:EE:FF", fake.lastCall?.mac)

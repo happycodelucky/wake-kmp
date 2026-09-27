@@ -4,7 +4,7 @@
  * Public, scriptable test fake for consumers of `:wake`: `FakeWake`, a
  * recording implementation of the `WakeSender` seam (from `:wake`) that
  * captures every `up` call without opening a real socket and returns a
- * programmable `Outcome`.
+ * programmable `Result`.
  * Same module shape as `:wake` via the `wake.kmp-library` convention plugin;
  * published in lockstep (same group / version / pipeline) via `wake.publish`.
  * Consumers wire it on `testImplementation` (or KMP `commonTest` deps); the
@@ -39,9 +39,9 @@ kotlin {
             // get `Wake` / `WakeException` transitively — they will assert
             // against those types.
             api(project(":wake"))
-            // FakeWake's constructor takes an `Outcome`, so declare it directly
-            // rather than lean on `:wake`'s transitive `api`.
-            api(project(":outcome"))
+            // FakeWake's constructor takes a KotlinResult `Result`, so declare it
+            // directly rather than lean on `:wake`'s transitive `api`.
+            api(libs.kotlinresult)
 
             // Coroutines for the suspend `wake` override; atomicfu for the
             // FakeWake call recorder's atomic counter / last-call snapshot.

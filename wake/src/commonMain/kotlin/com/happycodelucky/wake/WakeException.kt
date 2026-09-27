@@ -1,17 +1,18 @@
 /*
- * Wake — the failure half of `Wake.up`'s `Outcome` (CLAUDE.md §8).
+ * Wake — the failure half of `Wake.up`'s `Result` (CLAUDE.md §8).
  *
- * A sealed `Exception` hierarchy rather than a sealed result type: it is what an
- * `Outcome` / `kotlin.Result` carries, so Kotlin consumers get the standard
- * `Result` API with a closed, exhaustively-matchable error set. Swift catches it
- * as itself (`catch let e as WakeException`) — `:outcome`'s bundled Swift throws
- * Kotlin exceptions as Swift errors — and switches with SKIE's `onEnum(of:)`.
+ * A sealed `Exception` hierarchy rather than a sealed result type: it is what a
+ * KotlinResult `Result` / `kotlin.Result` carries, so Kotlin consumers get the
+ * standard `Result` API with a closed, exhaustively-matchable error set. Swift
+ * catches it as itself (`catch let e as WakeException`) — KotlinResult's bundled
+ * Swift throws Kotlin exceptions as Swift errors — and switches with SKIE's
+ * `onEnum(of:)`.
  */
 package com.happycodelucky.wake
 
 /**
  * Why a [Wake.up] failed. Always the exception inside a failed
- * `Outcome<Unit>` from [Wake.up] / [WakeSender.up].
+ * `Result<Unit>` from [Wake.up] / [WakeSender.up].
  *
  * ```kotlin
  * val error = Wake.up(mac).exceptionOrNull() as? WakeException

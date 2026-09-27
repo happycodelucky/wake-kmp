@@ -1,14 +1,16 @@
 /*
  * Wake — public API surface (CLAUDE.md §8).
  *
- * [Wake.up] returns `Outcome<Unit>` (from `:outcome`), a Swift-friendly mirror of
- * `kotlin.Result`. A failure always holds a [WakeException] — a sealed hierarchy,
+ * [Wake.up] returns `Result<Unit>` from KotlinResult
+ * (`com.happycodelucky.kotlinresult`), a Swift-friendly mirror of `kotlin.Result`
+ * that Swift sees as `KotlinResult`. A failure always holds a [WakeException] — a sealed hierarchy,
  * so a Kotlin `when` over it is exhaustive and Swift switches on it with SKIE's
  * `onEnum(of:)`.
  *
- * - **Kotlin** gets the whole `Result` API on it (`isSuccess`, `getOrThrow`,
- *   `fold`, `onFailure`, `map`…), and `toResult()` for the stdlib type.
- * - **Swift** unwraps it with `:outcome`'s bundled `get()`: success returns,
+ * - **Kotlin** gets the whole `Result` API on it as members (`isSuccess`,
+ *   `getOrThrow`, `fold`, `onFailure`, `map`…), and `toStdlibResult()` for the
+ *   stdlib type.
+ * - **Swift** unwraps it with KotlinResult's bundled `get()`: success returns,
  *   failure throws the [WakeException] itself as a Swift `Error`.
  *
  * `up` never throws across the boundary; SKIE still renders the suspend call as
@@ -26,8 +28,8 @@
  */
 package com.happycodelucky.wake
 
-import com.happycodelucky.outcome.Outcome
-import com.happycodelucky.outcome.toOutcome
+import com.happycodelucky.kotlinresult.Result
+import com.happycodelucky.kotlinresult.toResult
 import com.happycodelucky.wake.internal.defaultBroadcaster
 import com.happycodelucky.wake.internal.performWake
 import kotlin.experimental.ExperimentalObjCName
@@ -109,7 +111,7 @@ public object Wake {
      * case-insensitive.
      *
      * Never throws (other than coroutine cancellation): every failure is a
-     * failed [Outcome] holding a [WakeException] —
+     * failed [Result] holding a [WakeException] —
      * [WakeException.InvalidMacAddress] for unparseable input, or
      * [WakeException.NetworkError] when the socket send fails.
      *
@@ -132,11 +134,11 @@ public object Wake {
         mac: String,
         broadcastAddress: String = DEFAULT_BROADCAST_ADDRESS,
         port: Int = DEFAULT_WAKE_PORT,
-    ): Outcome<Unit> =
+    ): Result<Unit> =
         performWake(
             broadcaster = defaultBroadcaster(),
             mac = mac,
             broadcastAddress = broadcastAddress,
             port = port,
-        ).toOutcome()
+        ).toResult()
 }

@@ -13,9 +13,9 @@
 //
 //     try await Wake.up(mac: "AA:BB:CC:DD:EE:FF").get()
 //
-// The result is `Outcome<KotlinUnit>` (from `:outcome`); `.get()` — from
-// `:outcome`'s own bundled Swift, compiled into this same framework because WakeKit
-// `export`s `:outcome` — returns on success and throws the `WakeException` itself
+// The result is `KotlinResult<KotlinUnit>` (KotlinResult's `Result`); `.get()` —
+// from KotlinResult's own bundled Swift, compiled into this same framework because
+// WakeKit `export`s it — returns on success and throws the `WakeException` itself
 // on failure. Nothing error-specific lives here.
 //
 // This file lives in `:wake`'s `src/appleMain/swift/`. SKIE's Swift bundling
@@ -27,7 +27,7 @@
 // Bridging facts, verified against the built framework:
 //   - The singleton accessor is exactly `Wake.shared`.
 //   - Kotlin `suspend fun up` renders `async throws`; the `throws` only carries
-//     task cancellation (`up` reports failures in the `Outcome`), so this
+//     task cancellation (`up` reports failures in the `KotlinResult`), so this
 //     extension is `async throws` and forwards with `try await`.
 //   - Kotlin `Int` bridges to `Swift.Int32`, so `port` is `Int32`; the defaults
 //     `"255.255.255.255"` and `9` match `DEFAULT_BROADCAST_ADDRESS` /
@@ -61,7 +61,7 @@ extension Wake {
     ///     `192.168.1.255`) to cross a router that forwards directed broadcasts.
     ///   - port: The destination UDP port. Defaults to `9`, the most common
     ///     Wake-on-LAN convention.
-    /// - Returns: A successful `Outcome` when the packet was handed to the OS for
+    /// - Returns: A successful `KotlinResult` when the packet was handed to the OS for
     ///   broadcast (not a delivery guarantee), or a failed one holding a
     ///   `WakeException`. Unwrap with `get()`.
     /// - Throws: Only `CancellationError`, if the task is cancelled.
@@ -69,7 +69,7 @@ extension Wake {
         mac: String,
         broadcastAddress: String = "255.255.255.255",
         port: Int32 = 9
-    ) async throws -> Outcome<KotlinUnit> {
+    ) async throws -> KotlinResult<KotlinUnit> {
         try await Wake.shared.up(mac: mac, broadcastAddress: broadcastAddress, port: port)
     }
 }

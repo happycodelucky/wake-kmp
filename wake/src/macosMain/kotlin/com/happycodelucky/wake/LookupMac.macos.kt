@@ -16,8 +16,8 @@
 
 package com.happycodelucky.wake
 
-import com.happycodelucky.outcome.Outcome
-import com.happycodelucky.outcome.toOutcome
+import com.happycodelucky.kotlinresult.Result
+import com.happycodelucky.kotlinresult.toResult
 import com.happycodelucky.wake.internal.SysctlArpResolver
 import com.happycodelucky.wake.internal.performLookup
 import kotlin.experimental.ExperimentalObjCName
@@ -52,5 +52,5 @@ import kotlin.native.ObjCName
  * @return the resolved MAC, or a failure holding a [MacLookupException].
  */
 @ObjCName(swiftName = "lookupMac")
-public suspend fun lookupMac(ip: String): Outcome<String> =
-    performLookup(resolver = SysctlArpResolver(), ip = ip).toOutcome()
+public suspend fun lookupMac(ip: String): Result<String> =
+    performLookup(resolver = SysctlArpResolver(), ip = ip).toResult()

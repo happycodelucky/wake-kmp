@@ -80,6 +80,12 @@ macos-deployment-target = "15.0"
 kotlinx-coroutines = "1.11.0"
 kotlinx-atomicfu = "0.33.0"
 
+# --- Result type ------------------------------------------------------------
+# KotlinResult (happycodelucky/kotlinresult-kmp): `Result<T>`, a Swift-friendly
+# mirror of kotlin.Result (Swift: `KotlinResult`). Wake exposes it at its public
+# API and `export`s it into WakeKit (see wake/build.gradle.kts).
+kotlinresult = "1.0.0"
+
 # --- Lint ------------------------------------------------------------------
 # The ktlint tool itself (com.pinterest.ktlint:ktlint-cli).
 ktlint-cli = "1.8.0"
@@ -94,6 +100,7 @@ detekt = "1.23.8"
 
 # --- kotlinx ----------------------------------------------------------------
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinresult = { module = "com.happycodelucky.kotlinresult:kotlinresult", version.ref = "kotlinresult" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "kotlinx-atomicfu" }

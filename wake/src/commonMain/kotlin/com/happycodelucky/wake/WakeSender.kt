@@ -10,14 +10,14 @@
  *
  * Kotlin-only (`@HiddenFromObjC`) for now. Swift consumers wanting a seam
  * declare their own protocol over `Wake.up(mac:)`. (Swift can construct an
- * `Outcome` via `init(value:)` / `init(failure:)`, so exporting this for Swift
+ * `KotlinResult` via `init(value:)` / `init(failure:)`, so exporting this for Swift
  * fakes is a possible follow-up.)
  */
 @file:OptIn(ExperimentalObjCRefinement::class)
 
 package com.happycodelucky.wake
 
-import com.happycodelucky.outcome.Outcome
+import com.happycodelucky.kotlinresult.Result
 import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
 
@@ -29,7 +29,7 @@ import kotlin.native.HiddenFromObjC
  *
  * ```kotlin
  * class WakeMyDesktop(private val wake: WakeSender = Wake.asSender()) {
- *     suspend fun run(): Outcome<Unit> = wake.up("AA:BB:CC:DD:EE:FF")
+ *     suspend fun run(): Result<Unit> = wake.up("AA:BB:CC:DD:EE:FF")
  * }
  * ```
  *
@@ -38,7 +38,7 @@ import kotlin.native.HiddenFromObjC
  * the sender can ignore this type entirely and call [Wake.up] directly.
  *
  * The single method mirrors [Wake.up] exactly — same parameters, same defaults,
- * same [Outcome] — so swapping a direct `Wake.up(...)` call for an injected
+ * same [Result] — so swapping a direct `Wake.up(...)` call for an injected
  * `sender.up(...)` is a drop-in change.
  */
 @HiddenFromObjC
@@ -60,7 +60,7 @@ public interface WakeSender {
         mac: String,
         broadcastAddress: String = DEFAULT_BROADCAST_ADDRESS,
         port: Int = DEFAULT_WAKE_PORT,
-    ): Outcome<Unit>
+    ): Result<Unit>
 }
 
 /**
@@ -80,5 +80,5 @@ private object RealWakeSender : WakeSender {
         mac: String,
         broadcastAddress: String,
         port: Int,
-    ): Outcome<Unit> = Wake.up(mac, broadcastAddress, port)
+    ): Result<Unit> = Wake.up(mac, broadcastAddress, port)
 }

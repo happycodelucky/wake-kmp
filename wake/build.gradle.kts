@@ -35,9 +35,9 @@ kotlin {
             // stateless and holds no mutable shared state in production.
             implementation(libs.kotlinx.coroutines.core)
 
-            // `Outcome<T>` is Wake's public result type, so `api`. The framework
-            // also `export`s it (below) — see that block for why.
-            api(project(":outcome"))
+            // KotlinResult's `Result<T>` is Wake's public result type, so `api`.
+            // The framework also `export`s it (below) — see that block for why.
+            api(libs.kotlinresult)
         }
 
         commonTest.dependencies {
@@ -148,17 +148,19 @@ kmmbridge {
     }
 }
 
-// Export `:outcome` into WakeKit. Two reasons, both load-bearing:
-//  - Exported classes keep their plain Swift names (`Outcome`, not
-//    `OutcomeOutcome`-style prefixed ones), which is what `:outcome`'s bundled
-//    Swift (`outcome/src/appleMain/swift/`) is written against — SKIE compiles
-//    that file into WakeKit, and it fails to find `Outcome` without the export.
-//  - Swift consumers get the full `Outcome` surface, not just the members Wake's
-//    own signatures happen to touch.
+// Export KotlinResult into WakeKit. Required, not optional:
+//  - SKIE compiles the bundled Swift of every linked klib into the framework,
+//    including kotlinresult's `KotlinResult+Swift.swift` (`get()`,
+//    `result(as:)`, `KotlinThrowable: Error`). That file only compiles where
+//    `KotlinResult` keeps its plain Swift name — i.e. where the module is
+//    exported. Without this the link fails with "cannot find type
+//    'KotlinResult' in scope".
+//  - Swift consumers get the full `KotlinResult` surface, not just the members
+//    Wake's own signatures happen to touch.
 kotlin {
     targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget>().configureEach {
         binaries.withType<org.jetbrains.kotlin.gradle.plugin.mpp.Framework>().configureEach {
-            export(project(":outcome"))
+            export(libs.kotlinresult)
         }
     }
 }
