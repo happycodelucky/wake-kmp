@@ -65,6 +65,12 @@ dependency-analysis = "3.19.2"
 
 # --- Android SDK ------------------------------------------------------------
 android-compile-sdk = "36"
+# The compileSdk CONSUMERS must use — written into the AAR's aar-metadata as
+# minCompileSdk (convention plugin). Decoupled from android-compile-sdk above so
+# a compileSdk bump here isn't forced on every consumer (LESSONS B-001).
+# Policy: roughly the API level from ~3 years back. 34 = Android 14 (2023).
+# Raise it only if the library's public API exposes newer Android types.
+android-min-compile-sdk = "34"
 # arm64-v8a only (CLAUDE.md §1).
 android-min-sdk = "30"
 # Bytecode level for the jvm AND android targets (CLAUDE.md §2) — a consumer
