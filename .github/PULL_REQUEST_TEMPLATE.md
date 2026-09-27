@@ -81,7 +81,7 @@ Closes #
 
 <!-- AI: Non-obvious choices made while implementing, each with the
      alternative you rejected and why. If a decision is load-bearing beyond
-     this PR, also record it in CLAUDE.md (or .claude/lessons/) and cite it here.
+     this PR, also record it in CLAUDE.md (or .claude/lessons/LESSONS.md) and cite it here.
      Delete this section if there were none. -->
 
 ## How it was verified
@@ -110,7 +110,7 @@ Closes #
 - [ ] New dependencies were sourced per §5 (Kotlin-first table → klibs.io → platform primitive), are stable, and were added to `gradle/libs.versions.toml` only
 - [ ] A changeset is committed (`mise run changeset`) with its release note written in place of the Unfilled callout, or nothing in it reaches consumers: it changes no file in release scope (`.changeset/config.toml`) or is labelled `no-changeset` (§9) — the Changeset check enforces both
 - [ ] Docs updated (KDoc + README) for any public API or behavior change
-- [ ] Anything non-obvious learned is recorded in CLAUDE.md or `.claude/lessons/` (§12)
+- [ ] Anything non-obvious learned is recorded in CLAUDE.md or `.claude/lessons/LESSONS.md` (§12)
 - [ ] No hard-rule violations (§13): no Compose MP, CocoaPods, x86, `GlobalScope`, `!!` in production, `java.time` in common, Ktor UDP, `kotlin.synchronized`/`@Synchronized`/`volatile`, callback public APIs, EAP/RC/Beta deps
 
 ## AI assistance

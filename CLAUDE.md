@@ -527,6 +527,8 @@ rebuilds the debug XCFramework and flips `Package.swift` to a local path;
       under a skipped optional field — the shape the web form produces. Use its
       `title:` prefix and `labels:` (drop any the repo lacks — `gh` rejects
       them). Tick a required checkbox only if it's true.
+11. Learned something non-obvious? Add a terse line to
+    `.claude/lessons/LESSONS.md` (D/B/N, stable IDs — append, don't renumber).
 
 ---
 
