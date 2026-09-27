@@ -229,7 +229,7 @@ description = "Publish both modules to the local Maven repo (~/.m2) as the next 
 run = './gradlew publishToMavenLocal -Pversion="$(python3 scripts/changeset.py snapshot)"'
 
 # --- dependencies ----------------------------------------------------------
-# Renovate (renovate.json5) opens PRs in CI; these are the local equivalents.
+# Nothing bumps dependencies automatically: run these, review the diff, open a PR.
 
 # ben-manes (>= 0.55) supports parallel execution and the configuration cache,
 # so `dependencies:outdated` runs with the repo defaults. version-catalog-update

@@ -20,8 +20,8 @@
 # versionSupport.kotlin ends at 2.4.0(2.4.10)). Kotlin 2.4.20 is out; SKIE's
 # 2.4.20 support is in flight at https://github.com/touchlab/SKIE/pull/202
 # (tracked by touchlab/SKIE#205). CLAUDE.md §8: don't bump Kotlin past SKIE's
-# supported range. The hold is also encoded in renovate.json5 and in the
-# `versionCatalogUpdate { pin }` block of the root build script.
+# supported range. The hold is also encoded in the `versionCatalogUpdate { pin }`
+# block of the root build script.
 kotlin = "2.4.10"
 # com.android.kotlin.multiplatform.library variant (CLAUDE.md §2). AGP 9.4
 # requires Gradle >= 9.6.0.

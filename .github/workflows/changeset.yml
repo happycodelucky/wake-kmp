@@ -5,7 +5,7 @@ name: Changeset
 # branch adds or edits one. Two ways past the requirement:
 #
 #   * the `no-changeset` label — docs, CI, tests, the sample CLI: nothing a consumer
-#     gets. Renovate adds it to dependency PRs (renovate.json5).
+#     gets, such as a build-only dependency bump.
 #   * being the release PR itself (release/next), which consumes changesets.
 #
 # Its own workflow, not a ci.yml job: toggling the label re-runs this check

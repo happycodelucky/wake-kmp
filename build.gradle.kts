@@ -78,7 +78,7 @@ tasks.withType<com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 // (PREFER_STABLE) accepts a pre-release whenever the current version is one. So
 // it gets the same stable-only predicate explicitly, plus:
 //   - pin `kotlin`: the Kotlin pin is SKIE-bound (CLAUDE.md §8); an automated
-//     rewrite must never move it (the same hold renovate.json5 encodes).
+//     rewrite must never move it.
 //   - keepUnusedVersions: SDK levels, deployment targets and tool versions are
 //     read via `findVersion(...)`/typed accessors, not `version.ref`, so VCU
 //     would otherwise treat them as unused and delete them.
