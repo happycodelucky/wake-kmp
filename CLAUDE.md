@@ -467,6 +467,12 @@ rebuilds the debug XCFramework and flips `Package.swift` to a local path;
 - `Result` itself is tested in kotlinresult-kmp; here, verify the Swift surface in
   the built `.swiftinterface` (and, when it changes, with a Swift program linked
   against the framework).
+- `mise run test:swift` (CI's Apple leg) links the debug macOS WakeKit and runs
+  `tests/swift/WakeSwiftTests.swift` against it: the Swift surface Gradle can't
+  see — SKIE rendering, KotlinResult `get()`/`result(as:)` bridging,
+  `WakeException` + `onEnum(of:)`, and the bundled Swift `FakeWake`
+  (`src/appleMain/swift/FakeWake.swift`). Extend it when the Swift surface
+  changes.
 - `:wake-testing`'s `FakeWake` is the consumer-facing fake; it implements the
   `WakeSender` seam, so inject it by constructor where your code depends on a
   `WakeSender` (there is no `Wake` instance or singleton to install).

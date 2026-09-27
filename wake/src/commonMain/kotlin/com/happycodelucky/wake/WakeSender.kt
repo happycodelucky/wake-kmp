@@ -1,5 +1,5 @@
 /*
- * Wake — the injectable send seam for Kotlin consumers.
+ * Wake — the injectable send seam.
  *
  * `Wake.up(...)` is a static call on a stateless `object`: zero ceremony, but
  * nothing to substitute in a unit test. [WakeSender] is the sanctioned
@@ -8,18 +8,15 @@
  * `:wake-testing`. Callers who don't need a test seam keep calling [Wake.up]
  * directly.
  *
- * Kotlin-only (`@HiddenFromObjC`) for now. Swift consumers wanting a seam
- * declare their own protocol over `Wake.up(mac:)`. (Swift can construct an
- * `KotlinResult` via `init(value:)` / `init(failure:)`, so exporting this for Swift
- * fakes is a possible follow-up.)
+ * Exported to Swift as the `WakeSender` protocol, with `Wake.asSender()` as the
+ * production value. Swift tests use the bundled Swift `FakeWake`
+ * (`src/appleMain/swift/FakeWake.swift`) rather than conforming by hand: SKIE
+ * refines the protocol requirement to `__up(mac:broadcastAddress:port:)`, which a
+ * hand-written Swift conformance would have to implement under that name.
  */
-@file:OptIn(ExperimentalObjCRefinement::class)
-
 package com.happycodelucky.wake
 
 import com.happycodelucky.kotlinresult.Result
-import kotlin.experimental.ExperimentalObjCRefinement
-import kotlin.native.HiddenFromObjC
 
 /**
  * An injectable abstraction over [Wake.up].
@@ -34,14 +31,14 @@ import kotlin.native.HiddenFromObjC
  * ```
  *
  * In production the default argument wires the real [Wake.asSender]; in tests
- * pass a `FakeWake` (from `:wake-testing`). Code that has no need to substitute
+ * pass a `FakeWake` — from `:wake-testing` in Kotlin, or the one bundled in
+ * WakeKit in Swift. Code that has no need to substitute
  * the sender can ignore this type entirely and call [Wake.up] directly.
  *
  * The single method mirrors [Wake.up] exactly — same parameters, same defaults,
  * same [Result] — so swapping a direct `Wake.up(...)` call for an injected
  * `sender.up(...)` is a drop-in change.
  */
-@HiddenFromObjC
 public interface WakeSender {
     /**
      * Build the magic packet for [mac] and broadcast it over UDP.
@@ -70,7 +67,6 @@ public interface WakeSender {
  * `Wake.up(...)`. Use it as the default constructor argument for a feature that
  * depends on a [WakeSender].
  */
-@HiddenFromObjC
 @Suppress("UnusedReceiverParameter") // Scoped to Wake for discoverability (Wake.asSender()).
 public fun Wake.asSender(): WakeSender = RealWakeSender
 

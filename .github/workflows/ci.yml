@@ -132,6 +132,13 @@ jobs:
           mise run check
           mise run build
 
+      # Swift-surface tests: link the debug macOS WakeKit and run tests/swift
+      # against it — the SKIE rendering, KotlinResult's bundled get()/result(as:)
+      # bridging, WakeException matching and the bundled Swift FakeWake. Gradle's
+      # tests can't see any of that.
+      - name: Swift-surface tests
+        run: mise run test:swift
+
       - name: Upload XCFramework
         uses: actions/upload-artifact@v7
         with:

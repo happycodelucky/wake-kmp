@@ -72,4 +72,25 @@ extension Wake {
     ) async throws -> KotlinResult<KotlinUnit> {
         try await Wake.shared.up(mac: mac, broadcastAddress: broadcastAddress, port: port)
     }
+
+    /// The production `WakeSender`: `Wake.asSender().up(...)` is exactly
+    /// `Wake.up(...)`. Inject it where your code depends on a `WakeSender`, and
+    /// ``FakeWake`` in tests.
+    public static func asSender() -> WakeSender {
+        Wake.shared.asSender()
+    }
+}
+
+extension WakeSender {
+    /// `up(mac:broadcastAddress:port:)` with the library defaults — Swift can't
+    /// carry Kotlin's default arguments onto an interface method, so the short
+    /// forms are spelled out here (matching `Wake.up(mac:)`).
+    public func up(mac: String) async throws -> KotlinResult<KotlinUnit> {
+        try await up(mac: mac, broadcastAddress: "255.255.255.255", port: 9)
+    }
+
+    /// `up(mac:broadcastAddress:port:)` with the default port (`9`).
+    public func up(mac: String, broadcastAddress: String) async throws -> KotlinResult<KotlinUnit> {
+        try await up(mac: mac, broadcastAddress: broadcastAddress, port: 9)
+    }
 }
