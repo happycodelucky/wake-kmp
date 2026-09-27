@@ -416,8 +416,9 @@ forbidden.** Two channels, no overlap:
 `.github/PUBLISHING.md`). Every PR that reaches consumers adds a changeset
 (`mise run changeset`: `title`, `change: major|minor|patch`, `description`, then
 the full release note in place of its Unfilled callout); the **Changeset** PR
-check enforces it (label `no-changeset` to opt out — docs, CI, tests, the sample
-CLI). A changeset's `change` is the source of truth for the version — the
+check enforces it for any PR that changes a file in release scope —
+`include`/`exclude` globs in `.changeset/config.toml`; docs, CI, tests and the
+sample CLI are out of scope (label an in-scope PR `no-changeset` to opt out). A changeset's `change` is the source of truth for the version — the
 author's call, which neither the PR nor tooling overrides. Merges to `main` keep
 one rolling **Release vX.Y.Z** PR up to date on `release/next` — it bumps
 `version=` in `gradle.properties` (the single source of the version), rewrites
@@ -497,7 +498,9 @@ rebuilds the debug XCFramework and flips `Package.swift` to a local path;
    `change` level is the version decision; the PR's "Type of change" only
    restates it. The usual reading — removed/renamed public API is `major`, new
    API `minor`, a fix `patch` — is a default, not a rule (say why in the body
-   when you differ). Docs/CI/test-only PRs get the `no-changeset` label.
+   when you differ). Docs/CI/test-only PRs are out of release scope and need
+   none (`mise run changeset:scope`); label an in-scope PR that still reaches
+   no consumer `no-changeset`.
 8. Done means: `mise run check` passes and
    `./gradlew :wake:linkDebugFrameworkIosArm64` builds clean. `check` never
    builds the sample CLI — `mise run test:cli` does (CI's fast leg runs it).

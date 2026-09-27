@@ -38,7 +38,7 @@ Closes #
 - `major` — breaking change · `.changeset/<file>.md`
 - `minor` — new, compatible feature · `.changeset/<file>.md`
 - `patch` — bug fix · `.changeset/<file>.md`
-- None — nothing here reaches consumers (docs, CI, tests, the sample CLI); labelled `no-changeset`
+- None — nothing here reaches consumers: no file in release scope (`.changeset/config.toml`), or labelled `no-changeset`
 
 ## Affected platforms
 
@@ -108,7 +108,7 @@ Closes #
 - [ ] Public API changes follow the Swift-interop rules (§8): results are KotlinResult's `Result<T>` + a sealed exception, `kotlinresult` is `export`ed by every framework that links it, `@Throws` (if any) lists the domain exceptions (+ `CancellationException` on suspend) with no default args, no `kotlin.Result<T>` in a Swift-visible signature; a Swift-facing change is checked in the built `.swiftinterface`
 - [ ] If the public API changed intentionally, `mise run api:dump` was run and the `api/` diff is committed and reviewed
 - [ ] New dependencies were sourced per §5 (Kotlin-first table → klibs.io → platform primitive), are stable, and were added to `gradle/libs.versions.toml` only
-- [ ] A changeset is committed (`mise run changeset`) with its release note written in place of the Unfilled callout, or the PR is labelled `no-changeset` because nothing in it reaches consumers (§9) — the Changeset check enforces both
+- [ ] A changeset is committed (`mise run changeset`) with its release note written in place of the Unfilled callout, or nothing in it reaches consumers: it changes no file in release scope (`.changeset/config.toml`) or is labelled `no-changeset` (§9) — the Changeset check enforces both
 - [ ] Docs updated (KDoc + README) for any public API or behavior change
 - [ ] Anything non-obvious learned is recorded in CLAUDE.md or `.claude/lessons/` (§12)
 - [ ] No hard-rule violations (§13): no Compose MP, CocoaPods, x86, `GlobalScope`, `!!` in production, `java.time` in common, Ktor UDP, `kotlin.synchronized`/`@Synchronized`/`volatile`, callback public APIs, EAP/RC/Beta deps

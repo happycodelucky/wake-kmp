@@ -30,8 +30,10 @@ Xcode is not managed by mise — install a recent Xcode that SKIE supports.
 6. Does the change reach consumers (library code, public API, published
    artifacts)? Add a changeset: `mise run changeset`, then replace its
    *Unfilled* callout with the release note
-   ([`.changeset/README.md`](.changeset/README.md)). Docs/CI/test-only PRs get
-   the `no-changeset` label instead.
+   ([`.changeset/README.md`](.changeset/README.md)). Docs/CI/test-only PRs are
+   out of release scope (`.changeset/config.toml`; `mise run changeset:scope`
+   shows how a branch falls) and need none; label an in-scope PR that still
+   reaches no consumer `no-changeset`.
 
 ## The done gate
 

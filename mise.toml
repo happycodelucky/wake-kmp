@@ -197,8 +197,10 @@ run = "./gradlew dokkaGenerate"
 # --- changesets / release notes ---------------------------------------------
 # Every PR that reaches consumers adds a changeset (.changeset/README.md); the
 # Release PR workflow turns the pending ones into the next version + changelog.
-# scripts/changeset.py is stdlib-only Python (python3 3.9+, as on macOS and the
-# GitHub runners).
+# scripts/changeset.py is stdlib-only Python: 3.9+, except reading the release
+# scope (.changeset/config.toml) needs 3.11+ for tomllib. Every GitHub runner
+# has it; on macOS use a Homebrew python3 (the system one is 3.9) — python is
+# not pinned in [tools] above.
 
 [tasks.changeset]
 description = "Add a changeset for this branch (.changeset/<branch>.md). Prompts for title / change / description unless passed as flags."
@@ -211,8 +213,13 @@ run = "python3 scripts/changeset.py new"
 description = "Pending changesets, the next version they add up to, and a preview of its changelog entry."
 run = "python3 scripts/changeset.py status"
 
+[tasks."changeset:scope"]
+description = "Which files this branch changes since origin/main, in release scope (.changeset/config.toml) or not — whether the PR needs a changeset."
+# Pass paths to classify them instead, or --since REF for another base.
+run = "python3 scripts/changeset.py scope"
+
 [tasks."changeset:check"]
-description = "Validate every pending changeset — the PR check runs this (plus: the PR must add one)."
+description = "Validate every pending changeset — the PR check runs this (plus: a PR in release scope must add one)."
 run = "python3 scripts/changeset.py check"
 
 # --- publish ---------------------------------------------------------------
