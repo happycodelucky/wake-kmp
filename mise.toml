@@ -128,6 +128,16 @@ run = "./gradlew assemble --profile"
 description = "Run the sample CLI. Pass args after `--`, e.g. `mise run cli -- AA:BB:CC:DD:EE:FF` or `mise run cli -- --ip 192.168.1.42`. (For --help, use ./gradlew :apps:cli:run --args=\"--help\".)"
 run = './gradlew --quiet --console=plain :apps:cli:run --args="{{arg(name="cliargs", var=true)}}"'
 
+[tasks."test:swift"]
+description = "Swift-surface tests (macOS only): link the debug macOS WakeKit and run tests/swift against it — SKIE rendering, KotlinResult bridging, Swift FakeWake."
+run = """
+./gradlew :wake:linkDebugFrameworkMacosArm64
+mkdir -p build/swift-tests
+xcrun swiftc -parse-as-library -F wake/build/bin/macosArm64/debugFramework -framework WakeKit -lc++ \
+  tests/swift/WakeSwiftTests.swift -o build/swift-tests/WakeSwiftTests
+build/swift-tests/WakeSwiftTests
+"""
+
 [tasks."test:cli"]
 description = "Run the CLI arg-parser unit tests."
 run = "./gradlew :apps:cli:test"

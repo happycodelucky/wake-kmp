@@ -210,8 +210,30 @@ assertEquals("AA:BB:CC:DD:EE:FF", fake.lastCall?.mac)
 ```
 
 Code that doesn't need a test seam can ignore `WakeSender` and call `Wake.up(...)`
-directly. `WakeSender` and `FakeWake` are Kotlin-only; in Swift, declare your own
-protocol over `Wake.up(mac:)`.
+directly.
+
+In Swift, the same seam is the `WakeSender` protocol: production passes
+`Wake.asSender()`, and tests pass the `FakeWake` that ships in WakeKit. It records
+calls and returns a programmable `KotlinResult`:
+
+```swift
+import WakeKit
+
+struct WakeMyDesktop {
+    let wake: WakeSender  // Wake.asSender() in production
+    func run() async throws { try await wake.up(mac: "AA:BB:CC:DD:EE:FF").get() }
+}
+
+// Test:
+let fake = FakeWake(result: KotlinResult(failure: WakeException.NetworkError(message: "no route", cause: nil)))
+await #expect(throws: WakeException.NetworkError.self) { try await WakeMyDesktop(wake: fake).run() }
+#expect(fake.lastCall?.mac == "AA:BB:CC:DD:EE:FF")
+```
+
+Subclass `FakeWake` and override `respond(to:)` to script per-call results. Use
+it rather than conforming to `WakeSender` by hand: SKIE renames the protocol's
+requirement to `__up(mac:broadcastAddress:port:)`, and `FakeWake` implements it
+for you.
 
 ## Sample CLI
 
