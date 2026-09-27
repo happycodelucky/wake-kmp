@@ -17,11 +17,7 @@ import java.net.DatagramSocket
 import java.net.InetAddress
 
 internal class JvmUdpBroadcaster : UdpBroadcaster {
-    override suspend fun send(
-        packet: ByteArray,
-        broadcastAddress: String,
-        port: Int,
-    ): WakeSendOutcome =
+    override suspend fun send(packet: ByteArray, broadcastAddress: String, port: Int): WakeSendOutcome =
         withContext(Dispatchers.IO) {
             try {
                 DatagramSocket().use { socket ->

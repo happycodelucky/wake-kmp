@@ -30,12 +30,7 @@ import com.happycodelucky.wake.WakeException
  * @param port the destination UDP port.
  * @return success, or a failure holding a [WakeException].
  */
-internal suspend fun performWake(
-    broadcaster: UdpBroadcaster,
-    mac: String,
-    broadcastAddress: String,
-    port: Int,
-): Result<Unit> {
+internal suspend fun performWake(broadcaster: UdpBroadcaster, mac: String, broadcastAddress: String, port: Int): Result<Unit> {
     val macBytes =
         parseMacBytes(mac)
             ?: return Result.failure(WakeException.InvalidMacAddress(mac))

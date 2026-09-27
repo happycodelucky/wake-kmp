@@ -130,11 +130,7 @@ public object Wake {
      */
     @OptIn(ExperimentalObjCName::class)
     @ObjCName(swiftName = "up")
-    public suspend fun up(
-        mac: String,
-        broadcastAddress: String = DEFAULT_BROADCAST_ADDRESS,
-        port: Int = DEFAULT_WAKE_PORT,
-    ): Result<Unit> =
+    public suspend fun up(mac: String, broadcastAddress: String = DEFAULT_BROADCAST_ADDRESS, port: Int = DEFAULT_WAKE_PORT): Result<Unit> =
         performWake(
             broadcaster = defaultBroadcaster(),
             mac = mac,

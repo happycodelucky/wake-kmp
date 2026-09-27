@@ -24,11 +24,7 @@ internal interface UdpBroadcaster {
      * the caller's thread (the platform send can block), and never throw —
      * failures are returned as [WakeSendOutcome.Failed].
      */
-    suspend fun send(
-        packet: ByteArray,
-        broadcastAddress: String,
-        port: Int,
-    ): WakeSendOutcome
+    suspend fun send(packet: ByteArray, broadcastAddress: String, port: Int): WakeSendOutcome
 }
 
 /**
@@ -43,8 +39,5 @@ internal sealed interface WakeSendOutcome {
      * The send failed; [message] describes the platform error, and [cause] is
      * the platform exception where there was one.
      */
-    data class Failed(
-        val message: String,
-        val cause: Throwable? = null,
-    ) : WakeSendOutcome
+    data class Failed(val message: String, val cause: Throwable? = null) : WakeSendOutcome
 }

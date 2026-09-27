@@ -38,5 +38,4 @@ import com.happycodelucky.wake.internal.performLookup
  * @param ip the target device's IPv4 address, in dotted-quad form.
  * @return the resolved MAC, or a failure holding a [MacLookupException].
  */
-public suspend fun lookupMac(ip: String): Result<String> =
-    performLookup(resolver = JvmArpResolver(), ip = ip).toResult()
+public suspend fun lookupMac(ip: String): Result<String> = performLookup(resolver = JvmArpResolver(), ip = ip).toResult()

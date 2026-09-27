@@ -39,15 +39,11 @@ internal sealed interface ArpLookupOutcome {
      * The address was found; [mac] is exactly [MAC_LENGTH] bytes in big-endian
      * wire order.
      */
-    data class Resolved(
-        val mac: ByteArray,
-    ) : ArpLookupOutcome
+    data class Resolved(val mac: ByteArray) : ArpLookupOutcome
 
     /** The address was not present in the ARP cache (or its entry was incomplete). */
     data object NotFound : ArpLookupOutcome
 
     /** The read failed; [message] describes the platform error. */
-    data class Failed(
-        val message: String,
-    ) : ArpLookupOutcome
+    data class Failed(val message: String) : ArpLookupOutcome
 }

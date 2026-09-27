@@ -82,7 +82,8 @@ K2 only. No K1 fallback.
   `value class` for typed IDs (e.g. the internal `MacAddress`) — free at runtime.
 - `kotlin.time` for durations. `kotlin.uuid.Uuid` for UUIDs.
 - KDoc on all public API. Comments explain *why*, not *what*.
-- 4-space indent, 120-col max, trailing commas on multi-line.
+- 4-space indent, 140-col max (set once, in `.editorconfig` — ktlint enforces it,
+  detekt's `MaxLineLength` is off), trailing commas on multi-line.
 - ktlint + detekt must pass.
 
 **Apple platform names — preserve their casing.** `iOS`, `macOS`, `tvOS`,

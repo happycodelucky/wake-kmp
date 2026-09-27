@@ -19,9 +19,7 @@ import kotlin.test.assertNull
  */
 class PerformLookupTest {
     /** Records the requested IP and returns a programmable outcome. */
-    private class RecordingResolver(
-        private val outcome: ArpLookupOutcome = ArpLookupOutcome.NotFound,
-    ) : ArpResolver {
+    private class RecordingResolver(private val outcome: ArpLookupOutcome = ArpLookupOutcome.NotFound) : ArpResolver {
         var requestedIp: String? = null
         var resolveCount: Int = 0
 

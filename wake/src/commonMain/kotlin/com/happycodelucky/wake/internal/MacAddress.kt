@@ -22,9 +22,7 @@ private const val BYTE_MASK = 0xFF
  * exposes this type across the Swift boundary.
  */
 @JvmInline
-internal value class MacAddress private constructor(
-    val bytes: ByteArray,
-) {
+internal value class MacAddress private constructor(val bytes: ByteArray) {
     internal companion object {
         /** Wrap [bytes], which the caller guarantees is exactly [MAC_LENGTH] long. */
         fun of(bytes: ByteArray): MacAddress {

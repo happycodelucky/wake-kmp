@@ -50,11 +50,7 @@ import platform.posix.socket
 import platform.posix.uint32_tVar
 
 internal class PosixUdpBroadcaster : UdpBroadcaster {
-    override suspend fun send(
-        packet: ByteArray,
-        broadcastAddress: String,
-        port: Int,
-    ): WakeSendOutcome {
+    override suspend fun send(packet: ByteArray, broadcastAddress: String, port: Int): WakeSendOutcome {
         val hostOrderAddress =
             parseIpv4(broadcastAddress)
                 ?: return WakeSendOutcome.Failed("invalid broadcast address: $broadcastAddress")

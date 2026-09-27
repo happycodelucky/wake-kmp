@@ -18,9 +18,7 @@ package com.happycodelucky.wake
  * address. Always the exception inside a failed `Result<String>` from
  * `lookupMac`.
  */
-public sealed class MacLookupException(
-    message: String,
-) : Exception(message) {
+public sealed class MacLookupException(message: String) : Exception(message) {
     /** Non-null: every [MacLookupException] is constructed with a message. */
     override val message: String
         get() = super.message.orEmpty()
@@ -30,9 +28,7 @@ public sealed class MacLookupException(
      *
      * @property ip the input that failed to parse, verbatim.
      */
-    public class InvalidIpAddress(
-        public val ip: String,
-    ) : MacLookupException("could not parse IPv4 address: \"$ip\"")
+    public class InvalidIpAddress(public val ip: String) : MacLookupException("could not parse IPv4 address: \"$ip\"")
 
     /**
      * The IPv4 address was valid but has no current ARP-cache entry.
@@ -43,15 +39,11 @@ public sealed class MacLookupException(
      *
      * @property ip the address that was looked up.
      */
-    public class NotInCache(
-        public val ip: String,
-    ) : MacLookupException("no ARP entry for $ip")
+    public class NotInCache(public val ip: String) : MacLookupException("no ARP entry for $ip")
 
     /**
      * The OS reported an error while reading the ARP cache. [message] describes
      * the failure.
      */
-    public class LookupFailed(
-        message: String,
-    ) : MacLookupException(message)
+    public class LookupFailed(message: String) : MacLookupException(message)
 }
