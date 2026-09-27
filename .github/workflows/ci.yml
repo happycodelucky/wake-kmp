@@ -57,11 +57,17 @@ jobs:
       # `test:cli` builds and tests the :apps:cli sample. It's outside `check`
       # (a JVM app, not a published module), so without this step a public-API
       # or dependency change could break it unnoticed.
-      - name: Lint, JVM + Android tests, sample CLI, dependency analysis
+      #
+      # `build:android` assembles the AAR, which runs checkAndroidMainAarMetadata
+      # — the check that a dependency's minCompileSdk fits our compileSdk. `check`
+      # never runs it, so without this step it first fails at release time (the
+      # 1.1.0 release did, on KotlinResult 1.0.0's minCompileSdk=37).
+      - name: Lint, JVM + Android tests, Android AAR, sample CLI, dependency analysis
         run: |
           mise run lint
           mise run test:jvm
           mise run test:android
+          mise run build:android
           mise run test:cli
           mise run dependencies:analyze
 
