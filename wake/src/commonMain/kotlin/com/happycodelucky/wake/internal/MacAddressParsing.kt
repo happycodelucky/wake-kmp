@@ -18,7 +18,7 @@ private const val DECIMAL_TEN = 10
  * case-insensitive. Any surrounding whitespace is trimmed. Returns `null` for
  * anything that isn't exactly twelve hex digits once separators are stripped —
  * the caller maps `null` to
- * [com.happycodelucky.wake.WakeResult.InvalidMacAddress].
+ * [com.happycodelucky.wake.WakeException.InvalidMacAddress].
  *
  * @return a [MAC_LENGTH]-byte array, or `null` if [text] is not a valid MAC.
  */

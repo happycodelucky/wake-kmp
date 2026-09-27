@@ -34,6 +34,10 @@ kotlin {
             // for the off-main-thread socket send. No atomicfu — Wake is
             // stateless and holds no mutable shared state in production.
             implementation(libs.kotlinx.coroutines.core)
+
+            // KotlinResult's `Result<T>` is Wake's public result type, so `api`.
+            // The framework also `export`s it (below) — see that block for why.
+            api(libs.kotlinresult)
         }
 
         commonTest.dependencies {
@@ -141,6 +145,23 @@ kmmbridge {
     spm(swiftToolVersion = "6.0") {
         iOS { v("18") }
         macOS { v("15") }
+    }
+}
+
+// Export KotlinResult into WakeKit. Required, not optional:
+//  - SKIE compiles the bundled Swift of every linked klib into the framework,
+//    including kotlinresult's `KotlinResult+Swift.swift` (`get()`,
+//    `result(as:)`, `KotlinThrowable: Error`). That file only compiles where
+//    `KotlinResult` keeps its plain Swift name — i.e. where the module is
+//    exported. Without this the link fails with "cannot find type
+//    'KotlinResult' in scope".
+//  - Swift consumers get the full `KotlinResult` surface, not just the members
+//    Wake's own signatures happen to touch.
+kotlin {
+    targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget>().configureEach {
+        binaries.withType<org.jetbrains.kotlin.gradle.plugin.mpp.Framework>().configureEach {
+            export(libs.kotlinresult)
+        }
     }
 }
 

@@ -1,6 +1,5 @@
 package com.happycodelucky.wake.internal
 
-import com.happycodelucky.wake.WakeResult
 import kotlinx.coroutines.test.runTest
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -9,6 +8,7 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 /**
  * Exercises the real `java.net` send path on the local JVM. Lives in the
@@ -75,7 +75,7 @@ class JvmUdpBroadcasterTest {
                         port = port,
                     )
 
-                assertIs<WakeResult.Success>(result)
+                assertTrue(result.isSuccess)
 
                 val buffer = ByteArray(256)
                 receiver.receive(DatagramPacket(buffer, buffer.size))

@@ -1,6 +1,6 @@
 package com.happycodelucky.wake.internal
 
-import com.happycodelucky.wake.MacLookupResult
+import com.happycodelucky.wake.MacLookupException
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -33,7 +33,7 @@ class PerformLookupTest {
     }
 
     @Test
-    fun resolved_maps_to_Found_with_formatted_mac() =
+    fun resolved_succeeds_with_formatted_mac() =
         runTest {
             val mac =
                 byteArrayOf(
@@ -48,39 +48,39 @@ class PerformLookupTest {
 
             val result = performLookup(resolver, "192.168.1.42")
 
-            val found = assertIs<MacLookupResult.Found>(result)
-            assertEquals("AA:BB:CC:DD:EE:FF", found.macAddress)
+            assertEquals("AA:BB:CC:DD:EE:FF", result.getOrThrow())
         }
 
     @Test
-    fun not_found_maps_to_NotInCache() =
+    fun not_found_fails_with_NotInCache() =
         runTest {
             val resolver = RecordingResolver(ArpLookupOutcome.NotFound)
 
             val result = performLookup(resolver, "192.168.1.42")
 
-            assertIs<MacLookupResult.NotInCache>(result)
+            val error = assertIs<MacLookupException.NotInCache>(result.exceptionOrNull())
+            assertEquals("192.168.1.42", error.ip)
         }
 
     @Test
-    fun failed_maps_to_Error_with_message() =
+    fun failed_fails_with_LookupFailed() =
         runTest {
             val resolver = RecordingResolver(ArpLookupOutcome.Failed("sysctl failed, rc=-1"))
 
             val result = performLookup(resolver, "192.168.1.42")
 
-            val error = assertIs<MacLookupResult.Error>(result)
+            val error = assertIs<MacLookupException.LookupFailed>(result.exceptionOrNull())
             assertEquals("sysctl failed, rc=-1", error.message)
         }
 
     @Test
-    fun invalid_ip_returns_Error_and_never_reads() =
+    fun invalid_ip_fails_with_InvalidIpAddress_and_never_reads() =
         runTest {
             val resolver = RecordingResolver(ArpLookupOutcome.Resolved(ByteArray(MAC_LENGTH)))
 
             val result = performLookup(resolver, "not-an-ip")
 
-            assertIs<MacLookupResult.Error>(result)
+            assertIs<MacLookupException.InvalidIpAddress>(result.exceptionOrNull())
             assertEquals(0, resolver.resolveCount)
             assertNull(resolver.requestedIp)
         }

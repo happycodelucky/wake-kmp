@@ -10,33 +10,35 @@
  */
 package com.happycodelucky.wake.internal
 
-import com.happycodelucky.wake.MacLookupResult
+import com.happycodelucky.wake.MacLookupException
 
 /**
  * Validate [ip], read its hardware address via [resolver], and map the outcome
- * onto a public [MacLookupResult].
+ * onto a `Result` whose failure is a [MacLookupException].
  *
  * The IPv4 string is validated here (via [parseIpv4]) before the resolver runs,
- * so an unparseable address yields a consistent [MacLookupResult.Error] on every
+ * so an unparseable address yields a consistent
+ * [MacLookupException.InvalidIpAddress] on every
  * platform and the resolver only ever sees a syntactically valid dotted-quad.
- * This never throws — bad input and read failures come back as
- * [MacLookupResult.Error].
+ * This never throws — bad input, a missing entry, and read failures come back
+ * as a failed `Result`.
  *
  * @param resolver the ARP-read seam (platform implementation in production, a
  *   fake in tests).
  * @param ip the target device's IPv4 address, in dotted-quad form.
- * @return the mapped [MacLookupResult].
+ * @return the canonical `AA:BB:CC:DD:EE:FF` MAC, or a failure holding a
+ *   [MacLookupException].
  */
 internal suspend fun performLookup(
     resolver: ArpResolver,
     ip: String,
-): MacLookupResult {
+): Result<String> {
     parseIpv4(ip)
-        ?: return MacLookupResult.Error("could not parse IPv4 address: \"$ip\"")
+        ?: return Result.failure(MacLookupException.InvalidIpAddress(ip))
 
     return when (val outcome = resolver.resolve(ip)) {
-        is ArpLookupOutcome.Resolved -> MacLookupResult.Found(formatMac(outcome.mac))
-        is ArpLookupOutcome.NotFound -> MacLookupResult.NotInCache
-        is ArpLookupOutcome.Failed -> MacLookupResult.Error(outcome.message)
+        is ArpLookupOutcome.Resolved -> Result.success(formatMac(outcome.mac))
+        is ArpLookupOutcome.NotFound -> Result.failure(MacLookupException.NotInCache(ip))
+        is ArpLookupOutcome.Failed -> Result.failure(MacLookupException.LookupFailed(outcome.message))
     }
 }
