@@ -1,8 +1,13 @@
 ---
 title: Wake.up and lookupMac return KotlinResult, a Swift-friendly kotlin.Result
-change: major
+change: minor
 description: "WakeResult and MacLookupResult are replaced by Result<T> from KotlinResult (com.happycodelucky.kotlinresult): the kotlin.Result API in Kotlin, KotlinResult with try get() / Swift.Result in Swift, with failures as sealed WakeException / MacLookupException."
 ---
+
+> **Why `minor`, although this removes public API:** `WakeResult` and
+> `MacLookupResult` shipped only in 1.0.0, which nobody depends on yet, so the
+> author chose a minor bump over 2.0.0.
+
 
 `WakeResult` and `MacLookupResult` are gone. `Wake.up` returns `Result<Unit>` and
 `lookupMac` (macOS / JVM) returns `Result<String>`, from
