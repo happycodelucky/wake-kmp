@@ -22,7 +22,7 @@ WakeResult and MacLookupResult are replaced by Result<T> from KotlinResult (com.
 
 `WakeResult` and `MacLookupResult` are gone. `Wake.up` returns `Result<Unit>` and
 `lookupMac` (macOS / JVM) returns `Result<String>`, from
-[KotlinResult](https://github.com/happycodelucky/kotlinresult-kmp) 1.0.0
+[KotlinResult](https://github.com/happycodelucky/kotlinresult-kmp) 1.0.1
 (`com.happycodelucky.kotlinresult:kotlinresult`, brought in transitively by
 `wake`). It wraps and mirrors `kotlin.Result`; Swift sees it as `KotlinResult`. A failure always holds a sealed exception:
 `WakeException` or `MacLookupException`.
