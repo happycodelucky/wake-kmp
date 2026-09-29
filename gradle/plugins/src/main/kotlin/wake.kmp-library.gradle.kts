@@ -100,6 +100,20 @@ kotlin {
                 .toInt()
 
         withHostTestBuilder { /* enables the androidHostTest source set */ }
+
+        // What CONSUMERS must compile against, declared rather than inherited
+        // (LESSONS B-001). Left unset, AGP stamps the AAR's `minCompileSdk` with
+        // our compileSdk, and every consumer's `check<Variant>AarMetadata` then
+        // demands at least that. The catalog's `android-min-compile-sdk` is the
+        // deliberate floor instead.
+        aarMetadata {
+            minCompileSdk =
+                libs
+                    .findVersion("android-min-compile-sdk")
+                    .get()
+                    .requiredVersion
+                    .toInt()
+        }
     }
 
     // --- JVM target (CLAUDE.md §1) ------------------------------------------

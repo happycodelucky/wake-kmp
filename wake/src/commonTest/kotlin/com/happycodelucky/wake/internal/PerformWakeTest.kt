@@ -32,19 +32,13 @@ import kotlin.test.assertTrue
  */
 class PerformWakeTest {
     /** Records the last send and returns a programmable outcome. */
-    private class RecordingBroadcaster(
-        private val outcome: WakeSendOutcome = WakeSendOutcome.Sent,
-    ) : UdpBroadcaster {
+    private class RecordingBroadcaster(private val outcome: WakeSendOutcome = WakeSendOutcome.Sent) : UdpBroadcaster {
         var sentPacket: ByteArray? = null
         var sentAddress: String? = null
         var sentPort: Int? = null
         var sendCount: Int = 0
 
-        override suspend fun send(
-            packet: ByteArray,
-            broadcastAddress: String,
-            port: Int,
-        ): WakeSendOutcome {
+        override suspend fun send(packet: ByteArray, broadcastAddress: String, port: Int): WakeSendOutcome {
             sendCount++
             sentPacket = packet
             sentAddress = broadcastAddress
@@ -161,11 +155,7 @@ class PerformWakeTest {
             var sendEntered = false
             val suspendingBroadcaster =
                 object : UdpBroadcaster {
-                    override suspend fun send(
-                        packet: ByteArray,
-                        broadcastAddress: String,
-                        port: Int,
-                    ): WakeSendOutcome {
+                    override suspend fun send(packet: ByteArray, broadcastAddress: String, port: Int): WakeSendOutcome {
                         sendEntered = true
                         awaitCancellation()
                     }

@@ -29,10 +29,7 @@ import com.happycodelucky.wake.MacLookupException
  * @return the canonical `AA:BB:CC:DD:EE:FF` MAC, or a failure holding a
  *   [MacLookupException].
  */
-internal suspend fun performLookup(
-    resolver: ArpResolver,
-    ip: String,
-): Result<String> {
+internal suspend fun performLookup(resolver: ArpResolver, ip: String): Result<String> {
     parseIpv4(ip)
         ?: return Result.failure(MacLookupException.InvalidIpAddress(ip))
 

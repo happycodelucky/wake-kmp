@@ -20,8 +20,8 @@
 # versionSupport.kotlin ends at 2.4.0(2.4.10)). Kotlin 2.4.20 is out; SKIE's
 # 2.4.20 support is in flight at https://github.com/touchlab/SKIE/pull/202
 # (tracked by touchlab/SKIE#205). CLAUDE.md §8: don't bump Kotlin past SKIE's
-# supported range. The hold is also encoded in renovate.json5 and in the
-# `versionCatalogUpdate { pin }` block of the root build script.
+# supported range. The hold is also encoded in the `versionCatalogUpdate { pin }`
+# block of the root build script.
 kotlin = "2.4.10"
 # com.android.kotlin.multiplatform.library variant (CLAUDE.md §2). AGP 9.4
 # requires Gradle >= 9.6.0.
@@ -65,6 +65,12 @@ dependency-analysis = "3.19.2"
 
 # --- Android SDK ------------------------------------------------------------
 android-compile-sdk = "36"
+# The compileSdk CONSUMERS must use — written into the AAR's aar-metadata as
+# minCompileSdk (convention plugin). Decoupled from android-compile-sdk above so
+# a compileSdk bump here isn't forced on every consumer (LESSONS B-001).
+# Policy: roughly the API level from ~3 years back. 34 = Android 14 (2023).
+# Raise it only if the library's public API exposes newer Android types.
+android-min-compile-sdk = "34"
 # arm64-v8a only (CLAUDE.md §1).
 android-min-sdk = "30"
 # Bytecode level for the jvm AND android targets (CLAUDE.md §2) — a consumer
@@ -84,7 +90,7 @@ kotlinx-atomicfu = "0.33.0"
 # KotlinResult (happycodelucky/kotlinresult-kmp): `Result<T>`, a Swift-friendly
 # mirror of kotlin.Result (Swift: `KotlinResult`). Wake exposes it at its public
 # API and `export`s it into WakeKit (see wake/build.gradle.kts).
-kotlinresult = "1.0.1"
+kotlinresult = "1.1.0"
 
 # --- Lint ------------------------------------------------------------------
 # The ktlint tool itself (com.pinterest.ktlint:ktlint-cli).

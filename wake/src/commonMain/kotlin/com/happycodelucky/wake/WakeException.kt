@@ -24,10 +24,7 @@ package com.happycodelucky.wake
  * }
  * ```
  */
-public sealed class WakeException(
-    message: String,
-    cause: Throwable? = null,
-) : Exception(message, cause) {
+public sealed class WakeException(message: String, cause: Throwable? = null) : Exception(message, cause) {
     /** Non-null: every [WakeException] is constructed with a message. */
     override val message: String
         get() = super.message.orEmpty()
@@ -37,9 +34,7 @@ public sealed class WakeException(
      *
      * @property mac the input that failed to parse, verbatim.
      */
-    public class InvalidMacAddress(
-        public val mac: String,
-    ) : WakeException("could not parse MAC address: \"$mac\"")
+    public class InvalidMacAddress(public val mac: String) : WakeException("could not parse MAC address: \"$mac\"")
 
     /**
      * The underlying socket send failed (e.g. the broadcast address was
@@ -47,8 +42,5 @@ public sealed class WakeException(
      * error). [message] is the platform error message or errno description;
      * [cause] is the platform exception where there was one (JVM / Android).
      */
-    public class NetworkError(
-        message: String,
-        cause: Throwable? = null,
-    ) : WakeException(message, cause)
+    public class NetworkError(message: String, cause: Throwable? = null) : WakeException(message, cause)
 }

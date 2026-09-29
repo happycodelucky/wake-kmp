@@ -35,11 +35,7 @@ import kotlin.native.HiddenFromObjC
  * @property broadcastAddress the broadcast address passed.
  * @property port the port passed.
  */
-public data class WakeCall(
-    val mac: String,
-    val broadcastAddress: String,
-    val port: Int,
-)
+public data class WakeCall(val mac: String, val broadcastAddress: String, val port: Int)
 
 /**
  * Scriptable, recording [WakeSender] for tests.
@@ -65,9 +61,7 @@ public data class WakeCall(
  *   real [com.happycodelucky.wake.Wake.up] contract.
  */
 @HiddenFromObjC
-public class FakeWake(
-    private val result: Result<Unit> = Result.success(Unit),
-) : WakeSender {
+public class FakeWake(private val result: Result<Unit> = Result.success(Unit)) : WakeSender {
     private val _callCount = atomic(0)
     private val _calls = atomic(emptyList<WakeCall>())
 
@@ -87,11 +81,7 @@ public class FakeWake(
     public val wasCalled: Boolean
         get() = _callCount.value > 0
 
-    override suspend fun up(
-        mac: String,
-        broadcastAddress: String,
-        port: Int,
-    ): Result<Unit> {
+    override suspend fun up(mac: String, broadcastAddress: String, port: Int): Result<Unit> {
         _callCount.incrementAndGet()
         _calls.update { it + WakeCall(mac, broadcastAddress, port) }
         return result

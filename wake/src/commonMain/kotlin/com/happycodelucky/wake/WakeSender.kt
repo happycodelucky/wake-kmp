@@ -53,11 +53,7 @@ public interface WakeSender {
      * @param port the destination UDP port. Defaults to [DEFAULT_WAKE_PORT].
      * @return success, or a failure holding a [WakeException].
      */
-    public suspend fun up(
-        mac: String,
-        broadcastAddress: String = DEFAULT_BROADCAST_ADDRESS,
-        port: Int = DEFAULT_WAKE_PORT,
-    ): Result<Unit>
+    public suspend fun up(mac: String, broadcastAddress: String = DEFAULT_BROADCAST_ADDRESS, port: Int = DEFAULT_WAKE_PORT): Result<Unit>
 }
 
 /**
@@ -72,9 +68,5 @@ public fun Wake.asSender(): WakeSender = RealWakeSender
 
 /** The single [WakeSender] that delegates straight to [Wake.up]. */
 private object RealWakeSender : WakeSender {
-    override suspend fun up(
-        mac: String,
-        broadcastAddress: String,
-        port: Int,
-    ): Result<Unit> = Wake.up(mac, broadcastAddress, port)
+    override suspend fun up(mac: String, broadcastAddress: String, port: Int): Result<Unit> = Wake.up(mac, broadcastAddress, port)
 }

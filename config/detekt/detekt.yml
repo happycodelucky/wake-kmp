@@ -1,10 +1,11 @@
 # Wake — detekt overrides on top of the default config (CLAUDE.md §3).
 #
 # `buildUponDefaultConfig = true` is set in the root build script, so this file
-# only needs to record DEVIATIONS from detekt's defaults. The deviations below
-# relax two rules for TEST sources only — test code conventionally uses
-# descriptive backtick / underscore method names and inline literals, neither of
-# which is a smell in a test. Production code stays held to the strict defaults.
+# only needs to record DEVIATIONS from detekt's defaults. Two rules are relaxed
+# for TEST sources only — test code conventionally uses descriptive backtick /
+# underscore method names and inline literals, neither of which is a smell in a
+# test; production code stays held to the strict defaults. MaxLineLength is off:
+# ktlint owns the line length (.editorconfig).
 
 style:
   MagicNumber:
@@ -14,11 +15,9 @@ style:
       - "**/androidHostTest/**"
       - "**/*Test.kt"
   MaxLineLength:
-    # ktlint (via .editorconfig, max_line_length = 120) enforces the *real* line
-    # limit and reformats to it. detekt's 140 is deliberate slack above that, so
-    # the occasional long literal in test/data doesn't trip detekt after ktlint
-    # has already accepted the line.
-    maxLineLength: 140
+    # ktlint enforces the line length from the root .editorconfig (140), the
+    # single place the number lives; a second copy here could drift from it.
+    active: false
 
 naming:
   FunctionNaming:

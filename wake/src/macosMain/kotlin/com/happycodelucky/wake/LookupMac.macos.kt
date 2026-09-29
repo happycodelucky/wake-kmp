@@ -52,5 +52,4 @@ import kotlin.native.ObjCName
  * @return the resolved MAC, or a failure holding a [MacLookupException].
  */
 @ObjCName(swiftName = "lookupMac")
-public suspend fun lookupMac(ip: String): Result<String> =
-    performLookup(resolver = SysctlArpResolver(), ip = ip).toResult()
+public suspend fun lookupMac(ip: String): Result<String> = performLookup(resolver = SysctlArpResolver(), ip = ip).toResult()
