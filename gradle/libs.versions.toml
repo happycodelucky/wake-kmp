@@ -90,7 +90,7 @@ kotlinx-atomicfu = "0.33.0"
 # KotlinResult (happycodelucky/kotlinresult-kmp): `Result<T>`, a Swift-friendly
 # mirror of kotlin.Result (Swift: `KotlinResult`). Wake exposes it at its public
 # API and `export`s it into WakeKit (see wake/build.gradle.kts).
-kotlinresult = "1.0.1"
+kotlinresult = "1.1.0"
 
 # --- Lint ------------------------------------------------------------------
 # The ktlint tool itself (com.pinterest.ktlint:ktlint-cli).

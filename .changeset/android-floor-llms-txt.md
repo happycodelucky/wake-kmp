@@ -1,10 +1,16 @@
 ---
-title: "Android: compileSdk 34 floor for consumers; llms.txt in every artifact"
+title: "KotlinResult 1.1.0; Android compileSdk 34 floor for consumers; llms.txt in every artifact"
 change: patch
-description: The AAR now asks consumers for compileSdk 34 instead of 36, and every published jar and AAR carries llms.txt + llms-full.txt for AI tools.
+description: Wake now depends on KotlinResult 1.1.0. The AAR asks consumers for compileSdk 34 instead of 36, and every published jar and AAR carries llms.txt + llms-full.txt for AI tools.
 ---
 
-Two packaging changes, no API change:
+Dependency and packaging changes, no API change:
+
+- **KotlinResult 1.1.0.** `wake` now depends on
+  [KotlinResult 1.1.0](https://github.com/happycodelucky/kotlinresult-kmp/releases/tag/v1.1.0).
+  Its API and bundled Swift helpers are unchanged. It no longer ships a
+  Swift package of its own, which never affected WakeKit: Swift gets
+  `KotlinResult` through WakeKit, as before.
 
 - **Lower Android compileSdk floor.** The `wake` AAR used to declare
   `minCompileSdk` 36 (the SDK it was built with), so an app compiling against
