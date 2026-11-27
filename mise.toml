@@ -18,7 +18,9 @@
 # supports; CONTRIBUTING.md records the current minimum.
 
 [tools]
-java   = "temurin-21.0.12+101.0.LTS"   # CLAUDE.md §2 — JDK 21 LTS, Apple Silicon aarch64.
+java   = "temurin-21.0.13.1+2.0.LTS"   # CLAUDE.md §2 — JDK 21 LTS. 21.0.12+101.0.LTS (macOS-only
+                                        # rebuild) has no linux-x64 metadata; this build exists for
+                                        # both macOS aarch64 and linux-x64.
 gradle = "9.9.2"                       # Matches gradle/wrapper/gradle-wrapper.properties.
 gh     = "2.101.0"                     # release.yml uses gh (`gh release view`/`edit`, `gh api`).
 
