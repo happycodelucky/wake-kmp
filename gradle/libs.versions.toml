@@ -16,25 +16,24 @@
 [versions]
 
 # --- Toolchain --------------------------------------------------------------
-# HELD at 2.4.10: the highest Kotlin SKIE 0.10.14 supports (its
-# versionSupport.kotlin ends at 2.4.0(2.4.10)). Kotlin 2.4.20 is out; SKIE's
-# 2.4.20 support is in flight at https://github.com/touchlab/SKIE/pull/202
-# (tracked by touchlab/SKIE#205). CLAUDE.md §8: don't bump Kotlin past SKIE's
-# supported range. The hold is also encoded in the `versionCatalogUpdate { pin }`
-# block of the root build script.
-kotlin = "2.4.10"
-# com.android.kotlin.multiplatform.library variant (CLAUDE.md §2). AGP 9.4
-# requires Gradle >= 9.6.0.
-# NOTE: dependency-analysis prints "only known to work with AGP between 8.10.0
-# and 9.3.1 … proceed at your own risk" — its AGP_MAX lags the AGP release train.
-# Advisory only: buildHealth runs and reports normally on 9.4.1.
-agp = "9.4.1"
-# Supports Kotlin 2.0.0 – 2.4.10.
-skie = "0.10.14"
+# Kotlin 2.4.21 is the highest version SKIE 0.10.16 supports. CLAUDE.md §2:
+# bump SKIE first, and only once its changelog names the target Kotlin version.
+# Kotlin 2.5.0 is only at RC (stable planned December 2026) — held per
+# CLAUDE.md §2 (no EAP/RC/beta on main). The hold is also encoded in the
+# `versionCatalogUpdate { pin }` block of the root build script.
+kotlin = "2.4.21"
+# com.android.kotlin.multiplatform.library variant (CLAUDE.md §2). AGP 9.5
+# requires Gradle >= 9.6.0 (satisfied by the 9.9.2 wrapper below).
+# NOTE: dependency-analysis's AGP_MAX still lags the AGP release train and
+# prints "proceed at your own risk" on anything newer. Advisory only.
+agp = "9.5.3"
+# 0.10.16 adds Kotlin 2.4.20/2.4.21 support.
+skie = "0.10.16"
 # XCFramework → GitHub Release asset → SPM (CLAUDE.md §9).
 kmmbridge = "1.2.1"
-# Kotlin API doc generator; Dokka v2 task layout.
-dokka = "2.2.0"
+# Kotlin API doc generator; Dokka v2 task layout. 2.3.0 fixes CVE-2026-84939
+# (a critical path-traversal vulnerability).
+dokka = "2.3.0"
 # vanniktech's gradle-maven-publish-plugin — publishes signed artifacts to the
 # Sonatype Central Portal (central.sonatype.com). Floor: JDK 17 / Gradle 9 /
 # AGP 8.13 / KGP 2.2; officially supports com.android.kotlin.multiplatform.library
@@ -48,20 +47,22 @@ maven-publish = "0.37.0"
 # version-catalog-update (`versionCatalogUpdate`) REWRITES this file in place.
 # They are independent: VCU >= 1.0 resolves versions itself and does not read
 # ben-manes' output. Both are configured stable-only in the root build script.
-# Verified latest stable on the Gradle Plugin Portal 2026-09-23.
-ben-manes-versions = "0.64.0"
-version-catalog-update = "1.1.1"
+# Verified latest stable on the Gradle Plugin Portal 2026-11-27. 0.66.0 changed
+# ben-manes' default outputFormatter to "plain,problems" — pinned explicitly to
+# "plain" in the root build script so `dependencies:outdated`'s console output
+# doesn't change out from under a future bump.
+ben-manes-versions = "0.67.0"
+version-catalog-update = "1.1.2"
 
 # --- Build health / dependency hygiene --------------------------------------
 # dependency-analysis: flags unused deps, api-vs-implementation misuse, and
 # transitive deps you rely on directly. Run via `mise run dependencies:analyze`.
-# Verified latest stable on the Gradle Plugin Portal 2026-09-23.
-# dependency-analysis 3.19.2 imports kotlin-bom 2.4.0 onto the shared build
-# classpath: with a Kotlin Gradle plugin older than 2.4 that upgrades
-# kotlin-daemon-client under KGP and breaks its compiler-daemon connection
-# (NoSuchMethodError, silent fallback to in-process compilation). Keep Kotlin
-# >= 2.4 while on this line.
-dependency-analysis = "3.19.2"
+# Verified latest stable on the Gradle Plugin Portal 2026-11-27. Still imports
+# kotlin-bom onto the shared build classpath: with a Kotlin Gradle plugin older
+# than 2.4 that upgrades kotlin-daemon-client under KGP and breaks its
+# compiler-daemon connection (NoSuchMethodError, silent fallback to in-process
+# compilation). Keep Kotlin >= 2.4 while on this line.
+dependency-analysis = "3.20.4"
 
 # --- Android SDK ------------------------------------------------------------
 android-compile-sdk = "36"

@@ -68,6 +68,11 @@ fun isStableVersion(version: String): Boolean {
 }
 
 tasks.withType<com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask>().configureEach {
+    // ben-manes 0.66.0 changed the default outputFormatter to "plain,problems"
+    // (adding a Gradle Problems API report alongside the plain-text one). Pin
+    // the format explicitly so `dependencies:outdated`'s console output
+    // doesn't change out from under a future bump.
+    outputFormatter = "plain"
     rejectVersionIf {
         !isStableVersion(candidate.version)
     }

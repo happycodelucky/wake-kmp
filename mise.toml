@@ -19,7 +19,7 @@
 
 [tools]
 java   = "temurin-21.0.12+101.0.LTS"   # CLAUDE.md §2 — JDK 21 LTS, Apple Silicon aarch64.
-gradle = "9.7.1"                       # Matches gradle/wrapper/gradle-wrapper.properties.
+gradle = "9.9.2"                       # Matches gradle/wrapper/gradle-wrapper.properties.
 gh     = "2.101.0"                     # release.yml uses gh (`gh release view`/`edit`, `gh api`).
 
 # Deliberately NOT pinned here:

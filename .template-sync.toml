@@ -7,8 +7,8 @@
 [template]
 repo = "https://github.com/happycodelucky/kmp-template"
 branch = "main"
-last_synced = "3c348be806dced96c5d5a98809f73ff9d8f82f2b"
-last_synced_date = "2026-09-27"
+last_synced = "d630f0d4db51bfc6900ee247d1f3289d46179c56"
+last_synced_date = "2026-11-27"
 
 # Render map: how template paths and text read in this repo. Generated from the template's
 # scripts/init.sh rules; edit it where this repo deliberately differs. Replacements are
@@ -316,3 +316,45 @@ change = "b16e4c4 — remove Renovate"
 status = "adopted"
 reason = "The Renovate app was never installed here either (no Renovate PR ever)."
 synced = "2026-09-27"
+
+[[decision]]
+change = "66931a2, b1dbf2e — bump Kotlin/AGP/SKIE/Gradle wrapper and Dokka/dependency-analysis/ben-manes/VCU to latest stable"
+status = "adopted"
+reason = "Verified each version against its own registry (GitHub releases, Gradle Plugin Portal, Google Maven, services.gradle.org) rather than trusting the template's prose — all confirmed still latest-stable as of 2026-11-27. Kotest/androidx-lifecycle-runtime-compose/Compose BOM lines skipped: wake has no Kotest dependency and no sample Compose app (only :apps:cli). Also pinned ben-manes' outputFormatter=\"plain\" in build.gradle.kts (0.66.0 changed the default) and regenerated the Gradle wrapper to 9.9.2 with its sha256. `mise run check`, `llms:check`, and `linkDebugFrameworkIosArm64` all green; Kotlin 2.4.20's new Android-target ABI dump (KT-85950) required one `mise run api:dump` (LESSONS N-011)."
+synced = "2026-11-27"
+
+[[decision]]
+change = "6a98e22 — bump jdx/mise-action to v5 in CI (security fix)"
+status = "adopted"
+reason = "v4 is unpatched for a supply-chain issue (cached binary runs before verification); v5's minimum_release_age default only affects unpinned mise versions, and mise.toml pins every tool."
+synced = "2026-11-27"
+
+[[decision]]
+change = "3d7c12c — fix stale mise task names (apiCheck/apiDump) in API/ABI comments"
+status = "skipped"
+reason = "Not applicable: wake's mise.toml and wake.kmp-library.gradle.kts already say api:check / api:dump everywhere — no stale reference existed here."
+synced = "2026-11-27"
+
+[[decision]]
+change = "f7e3b33 — capture the Android application Context with an androidx.startup initializer"
+status = "skipped"
+reason = "Directly contradicts CLAUDE.md §1: Wake is explicitly stateless/one-shot and holds no mutable/application-level state, and the doc calls out \"no androidx.startup attach\" by name as a deliberate difference from the template. Recorded as a standing divergence, not a gap."
+synced = "2026-11-27"
+
+[[decision]]
+change = "01a8656 — add Dependabot version updates"
+status = "deferred"
+reason = "User chose to defer opting into automated weekly dependency-bump PRs for now; revisit on a future sync. Would need the pip/docs ecosystem block dropped (no mkdocs site here, see path = \"docs/*\" above)."
+synced = "2026-11-27"
+
+[[decision]]
+change = "2bf7704 — bump the mkdocs toolchain (security fix)"
+status = "skipped"
+reason = "No mkdocs site (see path = \"docs/*\" above)."
+synced = "2026-11-27"
+
+[[decision]]
+change = "90d2af4 — rename every Src*.kt file when rendering the template"
+status = "skipped"
+reason = "scripts/init.sh is template-only scaffolding (see path = \"scripts/init.sh\" above); wake was already rendered."
+synced = "2026-11-27"
